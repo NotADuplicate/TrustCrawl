@@ -1,0 +1,111 @@
+<main class="page">
+  <section class="card">
+    <header class="header">
+      <div>
+        <h1>{{ event.state.title || 'Event' }}</h1>
+        <p class="description" *ngIf="event.state.description">
+          {{ event.state.description }}
+        </p>
+        <!-- <p *ngIf="event.state.mode === 'group'">
+          Pick one option before the timer runs out. Group results will be revealed.
+        </p>
+        <p *ngIf="event.state.mode === 'individual'">
+          Pick one option before the timer runs out. Your choice resolves immediately.
+        </p> -->
+      </div>
+    </header>
+
+    <!-- <div class="timer" *ngIf="event.state.status === 'voting'">
+      <span>Time left</span>
+      <strong>{{ event.state.secondsLeft }}s</strong>
+    </div> -->
+
+    <div class="options" *ngIf="event.state.options.length > 0; else loading">
+      <button
+        type="button"
+        class="option"
+        *ngFor="let option of event.state.options; let idx = index"
+        [disabled]="event.state.preview || event.state.status === 'revealed' || event.state.votedOption !== null || option.available === false"
+        [class.selected]="event.state.status === 'revealed' && event.state.selectedOption === idx"
+        (click)="vote(idx)"
+      >
+        <span class="option-text">{{ option.description }}</span>
+        <span class="demon-text" *ngIf="option.demonText">{{ option.demonText }}</span>
+      </button>
+    </div>
+
+    <div class="selection" *ngIf="event.state.preview">
+      <h3>Preview</h3>
+      <p class="choice">This is a preview. Options are disabled.</p>
+      <button type="button" class="ghost" (click)="backToResting()">Back</button>
+    </div>
+
+    <div class="results" *ngIf="event.state.status === 'revealed'">
+      <ng-container *ngIf="event.state.mode === 'group'">
+        <h2>Results</h2>
+        <ul>
+          <li *ngFor="let result of event.state.results">
+            <span class="label">Option {{ result.optionIndex + 1 }}</span>
+            <span class="value">{{ result.votes }} votes</span>
+          </li>
+        </ul>
+
+        <div class="selection">
+          <h3>Selected</h3>
+          <p>{{ event.state.selectedPlayer || 'No player selected' }}</p>
+          <p class="choice">{{ selectedLabel() }}</p>
+        </div>
+      </ng-container>
+
+      <div
+        *ngIf="event.state.mode === 'individual' && event.state.resultMessage"
+        [class]="resultClass(event.state.resultColor)"
+      >
+        <p>{{ event.state.resultMessage }}</p>
+        <p class="demon-text" *ngIf="event.state.resultDemonText">{{ event.state.resultDemonText }}</p>
+      </div>
+    </div>
+
+    <div class="selection" *ngIf="event.state.endedMessage">
+      <div [class]="resultClass(event.state.endedColor)">
+        <p>{{ event.state.endedMessage }}</p>
+        <p class="demon-text" *ngIf="event.state.endedDemonText">{{ event.state.endedDemonText }}</p>
+      </div>
+      <button
+        type="button"
+        class="ghost"
+        (click)="continueAfterEvent()"
+        [disabled]="event.state.endedContinue"
+      >
+        Continue
+      </button>
+    </div>
+
+    <ng-template #loading>
+      <p class="empty">Waiting for event data...</p>
+    </ng-template>
+  </section>
+</main>
+
+    <div class="modal" *ngIf="showQuantityPrompt()">
+      <div class="modal-card">
+        <h2>Choose quantity</h2>
+        <p>Set a quantity up to the max allowed.</p>
+        <div class="modal-actions">
+          <input
+            type="number"
+            [min]="0"
+            [max]="event.state.options[pendingOption() ?? 0]?.max || 0"
+            [value]="quantityValue()"
+            (input)="quantityValue.set($any($event.target).valueAsNumber)"
+          />
+          <button
+            type="button"
+            (click)="confirmQuantity()"
+          >
+            Confirm
+          </button>
+        </div>
+        <button type="button" class="ghost" (click)="closeQuantityPrompt()">Cancel</button>
+      </div>
+    </div>

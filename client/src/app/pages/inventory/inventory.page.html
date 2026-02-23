@@ -1,0 +1,79 @@
+<main class="page">
+  <section class="card game">
+    <header class="header">
+      <div>
+        <h1>Trust Crawl</h1>
+        <p>Drag items from your inventory to the floor to share with everyone.</p>
+      </div>
+    </header>
+
+    <div class="game-grid" *ngIf="inventory.state.gameStarted; else waiting">
+      <section
+        class="panel"
+        (dragover)="$event.preventDefault()"
+        (drop)="onDropToInventory()"
+      >
+        <div class="panel-header">
+          <h2>Your inventory</h2>
+          <span class="total-weight">Total weight: {{ inventory.myInventoryWeight }} / 6</span>
+        </div>
+        <div class="item-grid" *ngIf="inventory.myInventoryStacked.length > 0; else emptyInventory">
+          <article
+            class="item"
+            *ngFor="let item of inventory.myInventoryStacked"
+            draggable="true"
+            (dragstart)="onDragStart(item.name, 'inventory')"
+            (dragend)="onDragEnd()"
+          >
+            <span class="quantity" *ngIf="item.quantity > 1">x{{ item.quantity }}</span>
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.description }}</p>
+            <span class="weight">Weight: {{ item.weight }}</span>
+            <button
+              type="button"
+              class="ghost"
+              *ngIf="item.usable"
+              (click)="useItem(item.name)"
+            >
+              Use
+            </button>
+          </article>
+        </div>
+        <ng-template #emptyInventory>
+          <p class="empty">No items in your inventory.</p>
+        </ng-template>
+      </section>
+
+      <section
+        class="panel floor"
+        (dragover)="$event.preventDefault()"
+        (drop)="onDropToFloor()"
+      >
+        <h2>Floor</h2>
+        <p class="hint">Drop items here to share them with everyone.</p>
+        <div class="item-grid" *ngIf="inventory.state.floorItems.length > 0; else emptyFloor">
+          <article
+            class="item"
+            *ngFor="let item of inventory.state.floorItems"
+            draggable="true"
+            (dragstart)="onDragStart(item.name, 'floor')"
+            (dragend)="onDragEnd()"
+          >
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.description }}</p>
+            <span class="weight">Weight: {{ item.weight }}</span>
+          </article>
+        </div>
+        <ng-template #emptyFloor>
+          <p class="empty">The floor is empty.</p>
+        </ng-template>
+      </section>
+    </div>
+
+    <ng-template #waiting>
+      <div class="waiting">
+        <p>Waiting for the game to start.</p>
+      </div>
+    </ng-template>
+  </section>
+</main>

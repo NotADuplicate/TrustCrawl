@@ -1,0 +1,58 @@
+<div class="hud" *ngIf="showHud()">
+	<div class="stats">
+		<div class="stat">
+			<span>Health</span>
+			<strong>{{ inventory.myHealth }}</strong>
+		</div>
+		<div class="stat">
+			<span>Stamina</span>
+			<strong>{{ inventory.myStamina }}</strong>
+		</div>
+	</div>
+	<div class="others">
+		<h4>Other players</h4>
+		<ul>
+			<li *ngFor="let player of inventory.otherPlayersHealth">
+				<span>{{ player.name }}</span>
+				<span class="hp">HP {{ player.health }}</span>
+			</li>
+			<li *ngIf="inventory.otherPlayersHealth.length === 0" class="empty">
+				No other players
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="global-timer" *ngIf="event.state.active && event.state.status === 'voting'">
+	<div class="global-timer__track">
+		<div class="global-timer__fill" [style.width.%]="timerPercent()"></div>
+	</div>
+</div>
+
+<button
+	class="inventory-button"
+	*ngIf="showHud()"
+	type="button"
+	(click)="goInventoryOrBack()"
+>
+	{{ inventoryButtonLabel() }}
+</button>
+
+<button
+	class="disconnect-button"
+	*ngIf="showHud()"
+	type="button"
+	(click)="disconnectToHome()"
+>
+	Disconnect
+</button>
+
+<div class="modal" *ngIf="inventory.state.showDemonModal">
+	<div class="modal-card">
+		<h2>You are the Demon</h2>
+		<p>Only you can see demon hints in events.</p>
+		<button type="button" (click)="inventory.dismissDemonModal()">Understood</button>
+	</div>
+</div>
+
+<router-outlet />

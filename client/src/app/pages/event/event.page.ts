@@ -1,0 +1,87 @@
+import { NgFor, NgIf } from '@angular/common';
+import { ChangeDetectorRef, Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { EventService } from '../../services/event.service';
+
+@Component({
+  selector: 'app-event-page',
+  imports: [NgIf, NgFor],
+  templateUrl: './event.page.html',
+  styleUrl: './event.page.scss'
+})
+export class EventPage {
+  protected readonly event = inject(EventService);
+  private readonly router = inject(Router);
+  protected readonly showQuantityPrompt = signal(false);
+  protected readonly pendingOption = signal<number | null>(null);
+  protected readonly quantityValue = signal(1);
+
+  constructor(private readonly cdr: ChangeDetectorRef) {
+    this.event.requestEvent();
+  }
+
+  protected vote(index: number): void {
+    const option = this.event.state.options[index];
+    if (option?.quantity) {
+      this.pendingOption.set(index);
+      const max = option.max ?? 0;
+      this.quantityValue.set(max > 0 ? 1 : 0);
+      this.showQuantityPrompt.set(true);
+      return;
+    }
+
+    this.event.vote(index);
+  }
+
+  protected closeQuantityPrompt(): void {
+    this.showQuantityPrompt.set(false);
+    this.pendingOption.set(null);
+  }
+
+  protected confirmQuantity(): void {
+    const index = this.pendingOption();
+    if (index === null) {
+      return;
+    }
+
+    const option = this.event.state.options[index];
+    const max = option?.max ?? 0;
+    const clamped = Math.max(0, Math.min(max, Math.floor(this.quantityValue())));
+    this.event.vote(index, clamped);
+    this.showQuantityPrompt.set(false);
+    this.pendingOption.set(null);
+  }
+
+  protected selectedLabel(): string {
+    const index = this.event.state.selectedOption;
+    if (index === null || index === undefined) {
+      return 'No selection';
+    }
+
+    const option = this.event.state.options[index];
+    return option ? option.description : 'No selection';
+  }
+
+  protected resultClass(color: string | null): string {
+    switch (color) {
+      case 'success':
+        return 'result-banner result-success';
+      case 'danger':
+        return 'result-banner result-danger';
+      case 'warning':
+        return 'result-banner result-warning';
+      case 'info':
+      default:
+        return 'result-banner result-info';
+    }
+  }
+
+  protected continueAfterEvent(): void {
+    this.event.continueAfterEvent();
+  }
+
+  protected backToResting(): void {
+    this.router.navigateByUrl('/resting');
+  }
+
+}

@@ -9,9 +9,10 @@
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "client/src/**/*.ts",
+    "server/**/*.ts"
   ],
   "exclude": [
-    "src/**/*.spec.ts"
+    "client/src/**/*.spec.ts"
   ]
 }

@@ -1,0 +1,136 @@
+<main class="page">
+  <section class="card">
+    <header class="header">
+      <div>
+        <h1>{{ resting.state.title || 'Resting' }}</h1>
+        <p>Take a breather and choose a skill for the next leg of the crawl.</p>
+      </div>
+      <div class="header-actions">
+        <button
+          type="button"
+          class="ghost"
+          (click)="continueToEvent()"
+          [disabled]="resting.state.continued"
+          *ngIf="resting.state.haveEaten"
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          *ngIf="inventory.state.isDemon || resting.state.scouting !== 'neither'"
+          (click)="openMapPrompt()"
+        >
+          Map
+        </button>
+        <button *ngIf="!resting.state.haveEaten" type="button" class="ghost" (click)="openEatPrompt()">Eat</button>
+      </div>
+    </header>
+
+    <div class="options" *ngIf="resting.state.skills.length > 0; else loading">
+      <button
+        type="button"
+        class="option"
+        *ngFor="let skill of resting.state.skills; let idx = index"
+        [disabled]="resting.state.selectedSkills.includes(idx) || resting.state.haveEaten"
+        [class.selected]="resting.state.selectedSkills.includes(idx)"
+        (click)="pickSkill(idx)"
+      >
+        <span class="option-text">{{ skill.name }}</span>
+        <span class="option-subtext">{{ skill.description }}</span>
+        <span class="option-target" *ngIf="skill.targeted">Targeted</span>
+        <span class="option-target" *ngIf="!skill.targeted && skill.options?.length">Options</span>
+      </button>
+    </div>
+
+    <div class="selection">
+      <p class="skill-text" *ngIf="resting.state.skillText">{{ resting.state.skillText }}</p>
+    </div>
+
+    <ng-template #loading>
+      <p class="empty">Waiting for resting options...</p>
+    </ng-template>
+  </section>
+</main>
+
+<div class="modal" *ngIf="showEatPrompt()">
+  <div class="modal-card">
+    <h2>Eat food?</h2>
+    <p>How many food rations do you want to eat?</p>
+    <div class="modal-actions">
+      <button type="button" (click)="eat(0)">0</button>
+      <button type="button" (click)="eat(1)" [disabled]="inventory.myFoodCount < 1">1</button>
+      <button type="button" (click)="eat(2)" [disabled]="inventory.myFoodCount < 2">2</button>
+    </div>
+    <button type="button" class="ghost" (click)="closeEatPrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showWeightWarning()">
+  <div class="modal-card">
+    <h2>Too much weight</h2>
+    <p>You are carrying {{ inventory.myInventoryWeight }} weight. Drop items to get to {{ resting.state.carryingCapacity }} or less before continuing.</p>
+    <button type="button" class="ghost" (click)="closeWeightWarning()">Got it</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showTargetPrompt()">
+  <div class="modal-card">
+    <h2>Choose a target</h2>
+    <p>Select a player to use this skill on.</p>
+    <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noTargets">
+      <button
+        type="button"
+        *ngFor="let player of inventory.otherPlayersHealth"
+        (click)="selectTarget(player.name)"
+      >
+        {{ player.name }} (HP {{ player.health }})
+      </button>
+    </div>
+    <ng-template #noTargets>
+      <p class="empty">No other players available.</p>
+    </ng-template>
+    <button type="button" class="ghost" (click)="closeTargetPrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showDirectionPrompt()">
+  <div class="modal-card">
+    <h2>Choose a direction</h2>
+    <p>Do you want to go left or right?</p>
+    <div class="modal-actions">
+      <button type="button" (click)="selectDirection('left')">Left</button>
+      <button type="button" (click)="selectDirection('right')">Right</button>
+    </div>
+    <button type="button" class="ghost" (click)="closeDirectionPrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showMapPrompt()">
+  <div class="modal-card">
+    <h2>Scout ahead</h2>
+    <p>View the left or right path.</p>
+    <div class="modal-actions">
+      <button [disabled]="resting.state.scouting !== 'left' && !inventory.state.isDemon" type="button" (click)="viewMap('left')">Left</button>
+      <button [disabled]="resting.state.scouting !== 'right' && !inventory.state.isDemon" type="button" (click)="viewMap('right')">Right</button>
+    </div>
+    <button type="button" class="ghost" (click)="closeMapPrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showOptionPrompt()">
+  <div class="modal-card">
+    <h2>Choose an option</h2>
+    <p>Select how you want to use this skill.</p>
+    <div class="modal-actions">
+      <button
+        type="button"
+        *ngFor="let option of (resting.state.skills[pendingOptionSkill() ?? 0]?.options || [])"
+        (click)="selectOption(option)"
+      >
+        {{ option }}
+      </button>
+    </div>
+    <button type="button" class="ghost" (click)="closeOptionPrompt()">Cancel</button>
+  </div>
+</div>
