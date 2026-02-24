@@ -1,3 +1,4 @@
+import { Game } from '../../game';
 import { Event, EventResult } from '../event';
 import { Player } from '../player';
 export class Rubble extends Event {
@@ -43,5 +44,9 @@ export class Rubble extends Event {
             return { text: 'You cleared the rubble with your hands and took 1 damage!', color: 'danger' };
         }
         return { text: '', color: 'info' };
+    }
+
+    override eventLikelihood(game: Game): number {
+        return 2;
     }
 }

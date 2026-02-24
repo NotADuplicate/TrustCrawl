@@ -8,6 +8,10 @@
 			<span>Stamina</span>
 			<strong>{{ inventory.myStamina }}</strong>
 		</div>
+		<div class="stat" *ngIf="inventory.myWellFed">
+			<span>Well fed</span>
+			<strong>Yes</strong>
+		</div>
 	</div>
 	<div class="others">
 		<h4>Other players</h4>

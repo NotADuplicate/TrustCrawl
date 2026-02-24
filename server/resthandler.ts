@@ -117,10 +117,15 @@ export class RestHandler {
         if (!this.restActive) {
             return;
         }
+        if(player.sleeping) {
+            player.stamina = 3;
+        }
 
         const foodToEat = Math.max(0, Math.min(2, Math.floor(amount)));
         this.eatenStatus.set(player.name, true);
         if (foodToEat === 0) {
+            player.damage(1, false);
+            player.wellFed = false;
             return;
         }
 
@@ -133,8 +138,13 @@ export class RestHandler {
             eaten += 1;
         }
 
-        if (eaten === 0) {
-            return;
+        if (eaten === 2) {
+            if(player.wellFed) {
+                player.heal(1);
+            }
+            player.wellFed = true;
+        } else {
+            player.wellFed = false;
         }
     }
 
@@ -150,6 +160,7 @@ export class RestHandler {
         this.eatenStatus.clear();
         this.continueVotes.clear();
         for (const player of this.game.players) {
+            player.sleeping = true;
             this.getSkillsForPlayer(player.name);
             this.eatenStatus.set(player.name, false);
         }
@@ -228,6 +239,7 @@ export class RestHandler {
     private useSkill(player: Player, skill: Skill, target?: Player, optionChoice?: string): void {
         const skillText = skill.Use(player, target, optionChoice);
         player.stamina--;
+        player.sleeping = false;
         this.skillTexts.set(player.name, skillText);
         this.game.broadcastGame();
         this.sendSkillTextToPlayer(player);

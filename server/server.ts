@@ -132,6 +132,7 @@ wss.on('connection', (socket) => {
 
                 const started = eventHandler.handleContinue(clientInfo);
                 if (started) {
+                    game.floor += 1;
                     restHandler.endRest();
                 }
             }

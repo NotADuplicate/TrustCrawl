@@ -11,6 +11,7 @@ export class Game {
     readonly players: Player[] = [];
     private readonly pendingDisconnects = new Map<string, NodeJS.Timeout>();
     private readonly disconnectGraceMs: number;
+    public floor: number = 1;
     hostSocket: WebSocket | undefined;
     gamePlayers: Player[] | undefined;
     floorItems: Item[] = [];
@@ -139,7 +140,7 @@ export class Game {
             player.addItem(new Tea());
         }
 
-        this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
+        //this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
         this.floorItems = [];
         this.broadcastState();
         this.broadcastGame();
@@ -157,6 +158,7 @@ export class Game {
             players: this.gamePlayers.map((player) => ({
                 name: player.name,
                 health: player.health,
+                wellFed: player.wellFed,
                 stamina: player.stamina,
                 inventory: player.inventory.map((item) => ({
                     name: item.name,

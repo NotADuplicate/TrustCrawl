@@ -1,3 +1,4 @@
+import { Game } from '../../game';
 import { Event, EventResult } from '../event';
 import { Player } from '../player';
 export class Chasm extends Event {
@@ -36,5 +37,9 @@ export class Chasm extends Event {
             return { text: 'The bridge collapsed, and all players took 2 damage.', color: 'danger' };
         }
         return { text: 'You crossed the bridge safely.', color: 'success' };
+    }
+
+    override eventLikelihood(game: Game): number {
+        return 2;
     }
 }

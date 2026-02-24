@@ -16,6 +16,7 @@ export type PlayerState = {
   name: string;
   health: number;
   stamina: number;
+  wellFed?: boolean;
   inventory: GameItem[];
 };
 
@@ -146,6 +147,12 @@ export class InventoryService {
     const selfName = this.state.name.trim();
     const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
     return player?.stamina ?? 0;
+  }
+
+  get myWellFed(): boolean {
+    const selfName = this.state.name.trim();
+    const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
+    return Boolean(player?.wellFed);
   }
 
   updateName(name: string): void {

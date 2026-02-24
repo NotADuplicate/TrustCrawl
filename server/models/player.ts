@@ -6,6 +6,8 @@ export class Player {
     public stamina = 3;
     public hauling = false;
     public maxHealth = 3;
+    public wellFed = false;
+    public sleeping = true;
     public scouting: 'left' | 'right' | 'neither' = 'neither';
 
     constructor(public name: string) { }
@@ -23,7 +25,7 @@ export class Player {
         return this.inventory.splice(index, 1)[0];
     }
 
-    damage(amount: number): void {
+    damage(amount: number, combat: boolean = true): void {
         console.log(`${this.name} takes ${amount} damage.`);
         this.health = Math.max(this.health - amount, 0);
     }

@@ -1,3 +1,4 @@
+import { Game } from "../game";
 import { Player } from "./player";
 
 export type EventOption = {
@@ -28,7 +29,7 @@ export class Event {
         return true;
     }
 
-    optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult  {
+    optionSelected(optionNumber: number, player: Player, quantity?: number, game?: Game): EventResult  {
         return { text: 'Option selected', color: 'info' };
     }
 
@@ -38,5 +39,9 @@ export class Event {
 
     eventEnded(): EventResult {
         return { text: 'The event has ended.', color: 'info' };
+    }
+
+    eventLikelihood(game: Game): number {
+        return 1;
     }
 }

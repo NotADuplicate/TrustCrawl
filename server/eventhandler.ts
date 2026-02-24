@@ -1,5 +1,5 @@
 import { Game } from "./game";
-import { Beast, Rubble, Monster, Chasm } from "./models/Events";
+import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant } from "./models/Events";
 import { Event, EventResult } from "./models/event";
 import { Player } from "./models/player";
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -21,7 +21,11 @@ export class EventHandler {
         Rubble,
         Beast,
         Monster,
-        Chasm
+        Chasm,
+        Treasure,
+        HotSpring,
+        Cliff,
+        Merchant
     ];
 
     constructor(
