@@ -8,6 +8,7 @@ export type EventOption = {
   demonText?: string;
   quantity?: boolean;
   max?: number;
+  repeatable?: boolean;
 };
 
 export type EventMode = 'group' | 'individual';

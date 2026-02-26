@@ -11,6 +11,7 @@ export class Player {
     public maxHealth = 3;
     public wellFed = false;
     public sleeping = true;
+    public enduring = false;
     public scouting: 'left' | 'right' | 'neither' | 'both' = 'neither';
     public game: Game;
     public wounded = false;
@@ -40,6 +41,13 @@ export class Player {
             amount = 1;
         }
         console.log(`${this.name} takes ${amount} damage.`);
+        if(this.enduring) {
+            console.log(`${this.name} is enduring and loses stamina instead of health.`);
+            const staminaLoss = Math.min(this.stamina, amount);
+            this.stamina -= staminaLoss;
+            amount -= staminaLoss;
+        }
+
         this.health = this.health - amount;
         if(this.health < 0) {
             this.game.floorItems.push(...this.inventory);

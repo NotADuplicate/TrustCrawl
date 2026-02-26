@@ -19,6 +19,7 @@ export class EventHandler {
     private previewLeft?: Event;
     private previewRight?: Event;
     private lastThreeEvents: Event[] = [];
+    private bossEvent: Boss | null = null;
     eventActive = false;
 
     private readonly EventPool = [
@@ -64,6 +65,7 @@ export class EventHandler {
     resetAll(): void {
         this.resetForNewGame();
         this.currentEvent = new Rubble(this.game.players);
+        this.bossEvent = new Boss(this.game.players);
     }
 
     handleDisconnect(player: Player): void {
@@ -91,6 +93,10 @@ export class EventHandler {
             return false;
         }
 
+        if (this.currentEvent.mode === 'individual' && this.revealedPlayers.has(player.name)) {
+            return false;
+        }
+
         if (optionIndex < 0 || optionIndex >= this.currentEvent.options.length) {
             return false;
         }
@@ -102,20 +108,39 @@ export class EventHandler {
         }
 
         if (this.currentEvent.mode === 'individual') {
+            const option = this.currentEvent.options[optionIndex];
             const result = this.currentEvent.optionSelected(optionIndex, player, quantity);
+            if (option?.repeatable) {
+                this.votes.delete(player.name);
+                this.sendEventTo(socket);
+                return false;
+            }
+
             this.revealedPlayers.add(player.name);
             this.sendEventTo(socket, result);
             if (this.revealedPlayers.size >= this.game.players.filter(p => p.health>0).length) {
-                const result = this.currentEvent.eventEnded();
-                this.revealEvent(result);
+                const endResult = this.currentEvent.eventEnded();
+                this.revealEvent(endResult);
                 return true;
             }
             return false;
         }
 
         if (this.votes.size >= this.game.players.filter(p => p.health>0).length) {
-            const result = this.groupEventResolve();
-            this.revealEvent(result);
+            const resolved = this.groupEventResolve();
+            if (resolved.repeatable) {
+                this.votes.clear();
+                if (this.eventTimer) {
+                    clearTimeout(this.eventTimer);
+                    this.eventTimer = undefined;
+                }
+                this.eventStartedAt = Date.now();
+                this.ensureEventTimer();
+                this.broadcastEvent();
+                return false;
+            }
+
+            this.revealEvent(resolved.result);
             return true;
         }
         return false;
@@ -163,8 +188,8 @@ export class EventHandler {
     }
 
     pickEvent(): Event {
-        if(this.game.level >= 10 && this.game.level % 2 === 0) {
-            return new Boss(this.game.players);
+        if(this.game.level >= 12 && this.game.level % 2 === 0) {
+            return this.bossEvent!;
         }
         const candidates = this.EventPool.map((EventType) => {
             const instance = new EventType(this.game.players);
@@ -225,7 +250,7 @@ export class EventHandler {
             return;
         }
 
-        for (const player of this.game.players.filter(p => p.health>0)) {
+        for (const player of this.game.players.filter(p => p.health>0 && !this.revealedPlayers.has(p.name))) {
             if (!this.votes.has(player.name)) {
                 let randomIndex = Math.floor(Math.random() * this.currentEvent.options.length);
                 while (!this.currentEvent.isOptionAvailable(randomIndex, player)) {
@@ -252,6 +277,7 @@ export class EventHandler {
                 available: player ? this.currentEvent.isOptionAvailable(index, player) : true,
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? this.currentEvent.optionQuantityMax(index, player) : undefined,
+                repeatable: option.repeatable ?? false,
                 ...(isDemon && option.demonText ? { demonText: option.demonText } : {}),
             })),
             mode: this.currentEvent.mode,
@@ -374,19 +400,48 @@ export class EventHandler {
         this.eventTimer = setTimeout(() => {
             this.ensureRandomVotes();
             if (this.currentEvent.mode === 'group') {
-                const result = this.groupEventResolve();
-                this.revealEvent(result);
+                const resolved = this.groupEventResolve();
+                if (resolved.repeatable) {
+                    this.votes.clear();
+                    this.eventTimer = undefined;
+                    this.eventStartedAt = Date.now();
+                    this.ensureEventTimer();
+                    this.broadcastEvent();
+                    return;
+                }
+
+                this.revealEvent(resolved.result);
                 return;
             }
             for (const playerName of this.votes.keys()) {
-                this.revealedPlayers.add(playerName);
+                const optionIndex = this.votes.get(playerName) ?? 0;
+                const player = this.game.players.find((entry) => entry.name === playerName);
+                if (!player) {
+                    continue;
+                }
+
+                this.currentEvent.optionSelected(optionIndex, player);
+                const repeatable = this.currentEvent.options[optionIndex]?.repeatable ?? false;
+                if (!repeatable) {
+                    this.revealedPlayers.add(playerName);
+                }
             }
-            const result = this.currentEvent.eventEnded();
-            this.revealEvent(result);
+
+            if (this.revealedPlayers.size >= this.game.players.filter(p => p.health>0).length) {
+                const result = this.currentEvent.eventEnded();
+                this.revealEvent(result);
+                return;
+            }
+
+            this.votes.clear();
+            this.eventTimer = undefined;
+            this.eventStartedAt = Date.now();
+            this.ensureEventTimer();
+            this.broadcastEvent();
         }, 45_000);
     }
 
-    groupEventResolve(): EventResult {
+    groupEventResolve(): { selectedOption: number | null; selectedPlayer: string | null; result: EventResult; repeatable: boolean } {
         let selectedOption: number | null = null;
         let selectedPlayer: string | null = null;
         const voters = Array.from(this.votes.keys());
@@ -395,6 +450,9 @@ export class EventHandler {
             selectedOption = this.votes.get(selectedPlayer) ?? null;
         }
 
-        return this.currentEvent.optionSelected(selectedOption ?? 0, this.game.players.find(p => p.name === selectedPlayer) ?? this.game.players[0]);
+        const optionIndex = selectedOption ?? 0;
+        const result = this.currentEvent.optionSelected(optionIndex, this.game.players.find(p => p.name === selectedPlayer) ?? this.game.players[0]);
+        const repeatable = this.currentEvent.options[optionIndex]?.repeatable ?? false;
+        return { selectedOption, selectedPlayer, result, repeatable };
     }
 }

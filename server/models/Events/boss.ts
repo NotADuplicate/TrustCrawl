@@ -4,6 +4,7 @@ import { Player } from '../player';
 export class Boss extends Event {
     health: number;
     scaredOff: boolean = false;
+    scareDamage: number = 0;
     constructor(players: Player[]) {
         let health = Math.floor(Math.random() * players.length) + players.length;
         super(
@@ -36,6 +37,7 @@ export class Boss extends Event {
             return { text: 'You attacked the monster!', color: 'info' };
         } else if (optionNumber === 1) {
             this.scaredOff = true;
+            player.damage(this.scareDamage);
             return { text: 'You scared the monster off! It will be waiting for you 2 floors later...', color: 'info' };
         }
 
@@ -43,15 +45,18 @@ export class Boss extends Event {
     }
 
     override eventEnded(): EventResult {
+        this.scareDamage++;
+        this.options[0].demonText = `The monster has ${this.health} health.`;
+        this.options[1].description = `Take ${this.scareDamage} damage and scare it off. This guarantees that the boss will leave, but it will be waiting for you 2 floors later.`;
         if(this.health > 0 && !this.scaredOff) {
             for(const player of this.players) {
                 player.damage(3);
             }
             return { text: 'The monster survived and dealt 3 damage to all players!', color: 'danger' };
-        } else if (this.scaredOff) {
-            return { text: 'The monster was scared off, but it will be waiting for you 2 floors later...', color: 'warning' };
+        } else if (this.health <= 0) {
+            return { text: 'The monster was defeated!', color: 'success' };
         }
-        return { text: 'The monster was defeated!', color: 'success' };
+        return { text: 'The monster was scared off, but it will be waiting for you 2 floors later...', color: 'warning' };
     }
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {

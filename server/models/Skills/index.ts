@@ -7,3 +7,4 @@ export * from './Cook';
 export * from './Forage';
 export * from './Craft';
 export * from './Prepare';
+export * from './Endure';

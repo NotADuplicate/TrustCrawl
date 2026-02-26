@@ -35,7 +35,7 @@ export class Carcass extends Event {
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
         if(optionNumber === 0) {
             return { text: 'You decide to leave the carcass alone and continue on your way.', color: 'info' };
-        } else if(this.danger < optionNumber * 0.2) {
+        } else if(this.danger > optionNumber * 0.2) {
             const meatGained = optionNumber * 2;
             for(const player of this.players) {
                 for(let i = 0; i < meatGained; i++) {

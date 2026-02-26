@@ -21,18 +21,16 @@ export class GamblingGround extends Event {
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number, game?: Game): EventResult {
+        console.log(game?.floorItems);
         if(this.willDouble) {
-            const targetGame = game ?? this.game;
-            const items = [...(targetGame?.floorItems ?? [])];
+            const items = [...(this.game?.floorItems ?? [])];
             for(const item of items) {
                 const newItem = Object.assign(Object.create(Object.getPrototypeOf(item)), item);
-                targetGame?.floorItems.push(newItem);
+                this.game?.floorItems.push(newItem);
             }
             return { text: 'The items on the ground have doubled!', color: 'success' };
         } else {
-            if(game) {
-                game.floorItems = [];
-            }
+            this.game!.floorItems = [];
             return { text: 'The items on the ground have disappeared!', color: 'danger' };
         }
     }

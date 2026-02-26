@@ -2,13 +2,15 @@ import { type WebSocket } from 'ws';
 import { Game } from './game';
 import { Skill } from './models/skill';
 import { Player } from './models/player';
-import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare } from './models/Skills';
+import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare, Endure } from './models/Skills';
 import { Chest } from './models/Items/chest';
 import { Key } from './models/Items/Supplies/key';
 import { Food } from './models/Items/Supplies/food';
 import { Tool } from './models/Items/Supplies/tool';
 import { Gold } from './models/Items/Supplies/gold';
 import { Shiv } from './models/Items/Supplies/shiv';
+import { Firewood } from './models/Items/Supplies/firewood';
+import { Bandadge } from './models/Items/Equipment/bandadge';
 
 export class RestHandler {
     private readonly skillPool: Skill[] = [
@@ -21,6 +23,7 @@ export class RestHandler {
         new Cook(),
         new Craft(),
         new Prepare(),
+        new Endure(),
     ];
 
     private readonly playerSkills = new Map<string, Skill[]>();
@@ -62,6 +65,7 @@ export class RestHandler {
         this.accuseVotes.clear();
         this.currentAccuse = null;
         this.game.floorItems = [];
+        this.game.broadcastGame();
     }
 
     handleDisconnect(player: Player): void {
@@ -218,7 +222,7 @@ export class RestHandler {
             this.game.floorItems.push(chest);
             return;
         }
-        const supplies = [Food, Key, Tool, Gold, Shiv];
+        const supplies = [Food, Tool, Gold, Bandadge];
         const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
         const item = new supplyType();
         this.game.floorItems.push(item);
@@ -243,6 +247,7 @@ export class RestHandler {
             player.sleeping = true;
             player.scouting = 'neither';
             player.hauling = false;
+            player.enduring = false;
             this.getSkillsForPlayer(player.name);
             this.eatenStatus.set(player.name, false);
         }

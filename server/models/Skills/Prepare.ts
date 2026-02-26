@@ -1,6 +1,6 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-import { Cook, Craft, Forage, Haul, Hunt, Mend, Scavenge, Scout } from './';
+import { Cook, Craft, Endure, Forage, Haul, Hunt, Mend, Scavenge, Scout } from './';
 
 export class Prepare extends Skill {
     private readonly skillPool: Skill[] = [
@@ -12,17 +12,18 @@ export class Prepare extends Skill {
         new Hunt(),
         new Cook(),
         new Craft(),
+        new Endure(),
     ];
     private selectedSkills: Skill[] = [];
     
     constructor() {
         super(
             'Prepare',
-            'Pick 1 of four skills to have ready for the next floor.',
+            'Pick 1 of five skills to have ready for the next floor.',
             false,
             ['key', 'shiv']
         );
-        this.selectedSkills = this.pickSkills(4);
+        this.selectedSkills = this.pickSkills(5);
         this.options = this.selectedSkills.map(skill => skill.name);
     }
 

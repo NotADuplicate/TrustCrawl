@@ -7,6 +7,7 @@ import { Key } from '../Items/Supplies/key';
 import { Tool } from '../Items/Supplies/tool';
 import { Balloon, Tea, Satchel, Club, HeavyClub, Shovel, Armor } from '../Items/Equipment';
 import { Player } from '../player';
+import { Firewood } from '../Items/Supplies/firewood';
 
 type Sale = {
     item: Item;
@@ -26,7 +27,7 @@ export class SuspiciousMerchant extends Event {
             players
         );
         const numOfferings = Math.floor(Math.random() * 2) + 3;
-        this.stealPrice = Math.floor(Math.random() * 7);
+        this.stealPrice = Math.floor(Math.random() * 6);
         for(let i = 0; i < numOfferings; i++) {
             let newSale = this.pickItemToSell();
             while(this.sales.some((sale) => sale.item.name === newSale.item.name)) {
@@ -40,7 +41,8 @@ export class SuspiciousMerchant extends Event {
             },
             ...this.sales.map((sale) => ({
                 description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`,
-                demonText: sale.price >= this.stealPrice ? 'The merchant will steal your gold!' : ''
+                demonText: sale.price >= this.stealPrice ? 'The merchant will steal your gold!' : '',
+                repeatable: sale.price < this.stealPrice
             }))
         ]   
     }
@@ -61,6 +63,9 @@ export class SuspiciousMerchant extends Event {
         for(let i = 0; i < sale.price; i++) {
             player.removeItem('Gold');
         }
+        if(sale.price >= this.stealPrice) {
+            return { text: `The merchant stole your gold and ran away!`, color: 'danger' };
+        }
         for(let i = 0; i < sale.quantity; i++) {
             player.addItem(sale.item);
         }
@@ -70,7 +75,7 @@ export class SuspiciousMerchant extends Event {
     pickItemToSell(): Sale {
         if(Math.random() < 0.5) {
             console.log('Merchant is selling supplies.');
-            const supplies = [Food, Key, Tool];
+            const supplies = [Food, Key, Tool, Firewood];
             const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
             const item = new supplyType();
             const price = item.value * (0.7 + Math.random()*0.7);
@@ -101,5 +106,9 @@ export class SuspiciousMerchant extends Event {
             return 1+totalGold/game.players.filter((player) => player.health > 0).length;
         }
         return 0;
+    }
+
+    override eventEnded(): EventResult {
+        return { text: 'The merchant disappears into the shadows...', color: 'info' };
     }
 }

@@ -11,15 +11,15 @@ export class Spiders extends Event {
     constructor(players: Player[]) {
         const health1 = Math.floor(Math.random() * (players.length - 1)) + 1;
         const health2 = Math.floor(Math.random() * (players.length - 1)) + 1;
-        const foodAmount = Math.floor(Math.random() * players.length)*2;
-        const goldAmount = Math.floor(Math.random() * players.length);
+        const foodAmount = Math.floor(Math.random() * players.length)*2 + 1;
+        const goldAmount = Math.floor(Math.random() * players.length) + 1;
         const willDamage = Math.random() < 1/3;
         super(
             'Spiders',
             `You see 2 large spiders guarding their own hoards of food and gold.
             \n Any players can attack either spider to deal damage to it.
-            \n The first spider guards between 0 and ${players.length*2} food.
-            \n The second spider guards between 0 and ${players.length} gold.
+            \n The first spider guards between 1 and ${players.length*2} food.
+            \n The second spider guards between 1 and ${players.length} gold.
             \n Each spider has between 1 and ${players.length-1} health.`,
             [
                 {

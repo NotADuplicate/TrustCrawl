@@ -28,8 +28,12 @@ export class Traps extends Event {
         }
         this.options = this.bags.map((bagContents, index) => ({
             description: `${this.generateOptionText(bagContents)}.`,
-            demonText: index === trappedOption ? 'This bag is trapped!' : undefined
+            demonText: index === trappedOption ? 'This bag is trapped!' : undefined,
+            repeatable: index !== trappedOption
         }));
+        this.options[3] = {
+            description: 'Leave.',
+        }
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {

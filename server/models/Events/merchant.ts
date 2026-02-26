@@ -7,6 +7,7 @@ import { Key } from '../Items/Supplies/key';
 import { Tool } from '../Items/Supplies/tool';
 import { Balloon, Tea, Satchel, Club, HeavyClub, Shovel, Armor } from '../Items/Equipment';
 import { Player } from '../player';
+import { Firewood } from '../Items/Supplies/firewood';
 
 type Sale = {
     item: Item;
@@ -36,7 +37,8 @@ export class Merchant extends Event {
                 description: 'Leave the merchant alone and continue on your way.',
             },
             ...this.sales.map((sale) => ({
-                description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`
+                description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`,
+                repeatable: true
             }))
         ]   
     }
@@ -66,7 +68,7 @@ export class Merchant extends Event {
     pickItemToSell(): Sale {
         if(Math.random() < 0.5) {
             console.log('Merchant is selling supplies.');
-            const supplies = [Food, Key, Tool];
+            const supplies = [Food, Key, Tool, Firewood];
             const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
             const item = new supplyType();
             const price = item.value * (0.7 + Math.random()*0.7);

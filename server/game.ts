@@ -1,13 +1,9 @@
 import { Item } from "./models/item";
-import { Tea } from "./models/Items/Equipment/tea";
-import { Satchel } from "./models/Items/Equipment/satchel";
 import { Food } from "./models/Items/Supplies/food";
 import { Tool } from "./models/Items/Supplies/tool";
 import { Player } from "./models/player";
 import { type WebSocket } from 'ws';
 import { Event } from "./models/event";
-import { Bandadge } from "./models/Items/Equipment/bandadge";
-import { Shiv } from "./models/Items/Supplies/shiv";
 
 export class Game {
     readonly clients = new Map<WebSocket, Player>();
@@ -145,8 +141,8 @@ export class Game {
             player.addItem(new Tool());
         }
 
-        if(this.players.length > 2 || Math.random() < 0.5) {
-            this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
+        if(this.players.length > 2 || (this.players.length === 2 && Math.random() < 0.5)) {
+           this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
         }
         this.floorItems = [];
         this.broadcastState();
@@ -158,6 +154,7 @@ export class Game {
         if (!this.gamePlayers) {
             return null;
         }
+        console.log('Current event for game:', this.currentEvent?.title);
 
         return JSON.stringify({
             type: 'game',
@@ -187,6 +184,7 @@ export class Game {
     broadcastGame(): void {
         for (const [client, info] of this.clients.entries()) {
             if (client.readyState === client.OPEN) {
+                console.log("Here")
                 const payload = this.buildGamePayload(info.name);
                 if (payload) {
                     console.log(`Broadcasting game state to ${info.name}`);

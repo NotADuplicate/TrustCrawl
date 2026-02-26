@@ -5,6 +5,7 @@ export type EventOption = {
     description: string;
     demonText?: string;
     quantity?: boolean;
+    repeatable?: boolean;
 };
 
 export type EventResult = {

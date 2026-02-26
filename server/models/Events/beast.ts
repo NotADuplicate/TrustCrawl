@@ -10,7 +10,7 @@ export class Beast extends Event {
             'Beast',
             `A hungry beast stands in your way. Any players can attack the beast to deal a damage to it, or feed it.
             \n But if it survives and is still hungry it will deal 2 damage to ALL players.
-            \nIt has between 1 and ${players.length} health and between 1 and ${Math.floor(players.length*1.5)} hunger.`,
+            \nIt has between 1 and ${players.length} health and between 1 and ${Math.floor(players.length*1.5)+1} hunger.`,
             [
                 {
                     description: 'Attack the beast. Take 1 damage and deal damage',
