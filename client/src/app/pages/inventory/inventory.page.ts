@@ -50,4 +50,17 @@ export class InventoryPage {
   protected useItem(itemName: string): void {
     this.inventory.useItem(itemName);
   }
+
+  protected useItemOption(optionIndex: number): void {
+    const itemName = this.inventory.state.itemOptionItemName;
+    if (!itemName) {
+      return;
+    }
+
+    this.inventory.useItemWithOption(itemName, optionIndex);
+  }
+
+  protected closeItemOptions(): void {
+    this.inventory.clearItemOptions();
+  }
 }

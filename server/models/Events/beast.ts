@@ -22,6 +22,11 @@ export class Beast extends Event {
                     quantity: true
                 },
                 {
+                    description: 'Feed the beast. Give it an amount of raw meat.',
+                    demonText: `The beast has ${hunger} hunger.`,
+                    quantity: true
+                },
+                {
                     description: 'Wait around, if the beast is not killed or fed by other players, you will take 2 damage.',
                 }
             ],
@@ -30,6 +35,13 @@ export class Beast extends Event {
         );
         this.health = health;
         this.hunger = hunger;
+    }
+
+    override isOptionAvailable(optionNumber: number, player: Player): boolean {
+        if(optionNumber === 0) {
+            return !player.wounded;
+        }
+        return true;
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
@@ -43,6 +55,12 @@ export class Beast extends Event {
                 player.removeItem('Food');
             }
             return { text: `You fed the beast ${quantity} food!`, color: 'info' };
+        } else if(optionNumber === 2) {
+            for(let i = 0; i < (quantity ?? 0); i++) {
+                this.hunger -= 1;
+                player.removeItem('RawMeat');
+            }
+            return { text: `You fed the beast ${quantity} raw meat!`, color: 'info' };
         }
         return { text: 'You did nothing.', color: 'info' };
     }
@@ -50,6 +68,8 @@ export class Beast extends Event {
     override optionQuantityMax(optionNumber: number, player: Player): number {
         if(optionNumber === 1) {
             return player.inventory.filter(item => item.name === 'Food').length;
+        } else if(optionNumber === 2) {
+            return player.inventory.filter(item => item.name === 'Raw Meat').length;
         }
         return 0;
     }
@@ -66,5 +86,14 @@ export class Beast extends Event {
         } else {
             return { text: `The beast has been fed, it wanders off in search of its next meal.`, color: 'success' };
         }
+    }
+
+    override isStabable(): string[] {
+        return ['Beast'];
+    }
+
+    override stab(target: number): string {
+        this.health -= 1;
+        return `You stabbed the beast, dealing 1 damage!`;
     }
 }

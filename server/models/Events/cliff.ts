@@ -29,9 +29,10 @@ export class Cliff extends Event {
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
         if (optionNumber === 0) {
             return true;
-        } else {
-            return this.belayer === null || this.belayer.name === player.name;
+        } else if(player.wounded)  {
+            return false;
         }
+        return this.belayer === null || this.belayer.name === player.name;
     }
 
     override optionSelected(optionNumber: number, player: Player): EventResult {
@@ -42,6 +43,7 @@ export class Cliff extends Event {
             return { text: 'You are the belayer. You try your best...', color: 'info' };
         } else {
             this.belayer = player;
+            this.failure = true;
             return { text: 'You intentionally fail to belay the others. They won\'t know you did it on purpose.', color: 'info' };
         }
     }

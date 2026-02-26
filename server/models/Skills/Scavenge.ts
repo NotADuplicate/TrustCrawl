@@ -1,20 +1,19 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-import { Item } from '../item';
-import { Food } from '../Items/Supplies/food';
+import { Tool } from '../Items/Supplies/tool';
 export class Scavenge extends Skill {
     constructor() {
         super(
             'Scavenge',
-            'Gain 1d6 food.'
+            'Gain 1d4 tools.'
         );
     }
 
     override Use(player: Player): string {
-        const foodGained = Math.floor(Math.random() * 6) + 1;
-        for(let i = 0; i < foodGained; i++) {
-            player.addItem(new Food());
+        const toolsGained = Math.floor(Math.random() * 4) + 1;
+        for(let i = 0; i < toolsGained; i++) {
+            player.addItem(new Tool());
         }
-        return `You gained ${foodGained} food.`;
+        return `You gained ${toolsGained} tools.`;
     }
 }

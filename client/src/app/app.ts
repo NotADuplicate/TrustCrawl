@@ -79,6 +79,20 @@ export class App {
     return Math.max(0, Math.min(100, percent));
   }
 
+  protected useItemOption(optionIndex: number): void {
+    const itemName = this.inventory.state.itemOptionItemName;
+    if (!itemName) {
+      return;
+    }
+
+    this.inventory.useItemWithOption(itemName, optionIndex);
+  }
+
+  protected closeItemOptions(): void {
+    console.log('Closing item options.');
+    this.inventory.clearItemOptions();
+  }
+
   protected disconnectToHome(): void {
     this.inventory.disconnect();
     if (typeof localStorage !== 'undefined') {

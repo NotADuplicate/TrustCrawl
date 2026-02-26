@@ -6,3 +6,7 @@ export * from './cliff';
 export * from './treasure';
 export * from './hotSpring';
 export * from './merchant';
+export * from './carcass';
+export * from './spiders';
+export * from './suspiciousMerchant';
+export * from './giantBoar';

@@ -11,7 +11,7 @@ export class Rubble extends Event {
                     description: 'Use up a tool to clear the rubble.',
                 },
                 {
-                    description: 'Clear the rubble with your hands and take 1 damage.',
+                    description: 'Clear the rubble with your hands and take 2 damage.',
                 }
             ],
             'individual',
@@ -40,13 +40,13 @@ export class Rubble extends Event {
             }
             return { text: 'You used a shovel to clear the rubble without taking damage!', color: 'success' };
         } else if (optionNumber === 1) {
-            player.damage(1);
-            return { text: 'You cleared the rubble with your hands and took 1 damage!', color: 'danger' };
+            player.damage(2);
+            return { text: 'You cleared the rubble with your hands and took 2 damage!', color: 'danger' };
         }
         return { text: '', color: 'info' };
     }
 
     override eventLikelihood(game: Game): number {
-        return 2;
+        return 4;
     }
 }

@@ -24,6 +24,9 @@ export class RestingPage {
   protected readonly showMapPrompt = signal(false);
   protected readonly showOptionPrompt = signal(false);
   protected readonly pendingOptionSkill = signal<number | null>(null);
+  protected readonly showAccusePrompt = signal(false);
+  protected readonly showBodyWarning = signal(false);
+  protected readonly pendingBodyItemName = signal<string | null>(null);
 
   constructor() {
     this.resting.requestResting();
@@ -69,11 +72,31 @@ export class RestingPage {
       return;
     }
 
+    const bodyItem = this.inventory.state.floorItems.find((item) =>
+      item.name?.toLowerCase().includes('body')
+    );
+    if (bodyItem) {
+      this.pendingBodyItemName.set(bodyItem.name);
+      this.showBodyWarning.set(true);
+      return;
+    }
+
     this.showDirectionPrompt.set(true);
   }
 
   protected closeWeightWarning(): void {
     this.showWeightWarning.set(false);
+  }
+
+  protected closeBodyWarning(): void {
+    this.showBodyWarning.set(false);
+    this.pendingBodyItemName.set(null);
+  }
+
+  protected confirmBodyWarning(): void {
+    this.showBodyWarning.set(false);
+    this.pendingBodyItemName.set(null);
+    this.showDirectionPrompt.set(true);
   }
 
   protected closeTargetPrompt(): void {
@@ -103,6 +126,14 @@ export class RestingPage {
     this.showMapPrompt.set(false);
   }
 
+  protected openAccusePrompt(): void {
+    this.showAccusePrompt.set(true);
+  }
+
+  protected closeAccusePrompt(): void {
+    this.showAccusePrompt.set(false);
+  }
+
   protected viewMap(direction: 'left' | 'right'): void {
     if(this.resting.state.scouting !== direction && !this.inventory.state.isDemon) {
         console.log(`Cannot view ${direction} path, not scouted and not a demon`);
@@ -122,6 +153,15 @@ export class RestingPage {
     this.resting.pickTargetedSkill(index, targetName);
     this.showTargetPrompt.set(false);
     this.pendingTargetSkill.set(null);
+  }
+
+  protected selectAccuseTarget(targetName: string): void {
+    this.resting.accuse(targetName);
+    this.showAccusePrompt.set(false);
+  }
+
+  protected voteAccuse(vote: boolean): void {
+    this.resting.voteAccuse(vote);
   }
 
   protected selectOption(optionChoice: string): void {

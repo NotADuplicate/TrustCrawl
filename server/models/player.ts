@@ -1,4 +1,7 @@
+import { Game } from '../game';
 import { Item } from './item';
+import { Body } from './Items/body';
+import { Skill } from './skill';
 
 export class Player {
     public inventory: Item[] = [];
@@ -8,9 +11,15 @@ export class Player {
     public maxHealth = 3;
     public wellFed = false;
     public sleeping = true;
-    public scouting: 'left' | 'right' | 'neither' = 'neither';
+    public scouting: 'left' | 'right' | 'neither' | 'both' = 'neither';
+    public game: Game;
+    public wounded = false;
+    public dead = false;
+    public preppedSkill: Skill | null = null;
 
-    constructor(public name: string) { }
+    constructor(public name: string, game: Game) {
+        this.game = game;
+    }
 
     addItem(item: Item): void {
         this.inventory.push(item);
@@ -26,8 +35,23 @@ export class Player {
     }
 
     damage(amount: number, combat: boolean = true): void {
+        if(amount > 1 && this.inventory.some(item => item.name === 'Armor')) {
+            console.log('Armor reduces damage to 1.');
+            amount = 1;
+        }
         console.log(`${this.name} takes ${amount} damage.`);
-        this.health = Math.max(this.health - amount, 0);
+        this.health = this.health - amount;
+        if(this.health < 0) {
+            this.game.floorItems.push(...this.inventory);
+            this.dead = true;
+            console.log(`${this.name} has died.`);
+        } else if(this.health === 0) {
+            console.log(`${this.name} is unconscious.`);
+            this.wounded = true;
+            this.game.floorItems.push(...this.inventory);
+            this.inventory = [];
+            this.game.floorItems.push(new Body(this));
+        }
     }
 
     dealDamage(): number {
@@ -41,6 +65,9 @@ export class Player {
     }
 
     heal(amount: number): void {
+        if(this.dead) {
+            return;
+        }
         console.log(`${this.name} heals ${amount} health.`);
         this.health = Math.min(this.health + amount, this.maxHealth);
     }

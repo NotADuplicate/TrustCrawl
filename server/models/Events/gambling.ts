@@ -22,8 +22,11 @@ export class GamblingGround extends Event {
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number, game?: Game): EventResult {
         if(this.willDouble) {
-            if(game) {
-                game.floorItems.push(...game.floorItems);
+            const targetGame = game ?? this.game;
+            const items = [...(targetGame?.floorItems ?? [])];
+            for(const item of items) {
+                const newItem = Object.assign(Object.create(Object.getPrototypeOf(item)), item);
+                targetGame?.floorItems.push(newItem);
             }
             return { text: 'The items on the ground have doubled!', color: 'success' };
         } else {
@@ -35,6 +38,6 @@ export class GamblingGround extends Event {
     }
 
     override eventLikelihood(game: Game): number {
-        return game.floor > 3 ? 1 : 0
+        return game.level > 3 ? 1 : 0
     }
 }

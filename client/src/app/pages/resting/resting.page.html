@@ -9,9 +9,17 @@
         <button
           type="button"
           class="ghost"
+          (click)="openAccusePrompt()"
+          *ngIf="inventory.myHealth < 1"
+        >
+          Accuse
+        </button>
+        <button
+          type="button"
+          class="ghost"
           (click)="continueToEvent()"
           [disabled]="resting.state.continued"
-          *ngIf="resting.state.haveEaten"
+          *ngIf="resting.state.haveEaten && inventory.myHealth > 0"
         >
           Continue
         </button>
@@ -32,7 +40,7 @@
         type="button"
         class="option"
         *ngFor="let skill of resting.state.skills; let idx = index"
-        [disabled]="resting.state.selectedSkills.includes(idx) || resting.state.haveEaten"
+        [disabled]="resting.state.selectedSkills.includes(idx) || resting.state.haveEaten || inventory.myStamina < 1 || inventory.myHealth < 1"
         [class.selected]="resting.state.selectedSkills.includes(idx)"
         (click)="pickSkill(idx)"
       >
@@ -71,6 +79,17 @@
     <h2>Too much weight</h2>
     <p>You are carrying {{ inventory.myInventoryWeight }} weight. Drop items to get to {{ resting.state.carryingCapacity }} or less before continuing.</p>
     <button type="button" class="ghost" (click)="closeWeightWarning()">Got it</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showBodyWarning()">
+  <div class="modal-card">
+    <h2>Leave them behind?</h2>
+    <p>{{ pendingBodyItemName() }} is left, if you continue without them they will die.</p>
+    <div class="modal-actions">
+      <button type="button" (click)="confirmBodyWarning()">Confirm</button>
+      <button type="button" class="ghost" (click)="closeBodyWarning()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -132,5 +151,36 @@
       </button>
     </div>
     <button type="button" class="ghost" (click)="closeOptionPrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showAccusePrompt()">
+  <div class="modal-card">
+    <h2>Accuse a player</h2>
+    <p>Pick someone to accuse.</p>
+    <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noAccuseTargets">
+      <button
+        type="button"
+        *ngFor="let player of inventory.otherPlayersHealth"
+        (click)="selectAccuseTarget(player.name)"
+      >
+        {{ player.name }} (HP {{ player.health }})
+      </button>
+    </div>
+    <ng-template #noAccuseTargets>
+      <p class="empty">No other players available.</p>
+    </ng-template>
+    <button type="button" class="ghost" (click)="closeAccusePrompt()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" *ngIf="resting.state.accuseActive">
+  <div class="modal-card">
+    <h2>Accusation</h2>
+    <p>{{ resting.state.accuseAccuser }} accuses {{ resting.state.accuseAccused }}.</p>
+    <div class="modal-actions">
+      <button type="button" (click)="voteAccuse(true)" [disabled]="resting.state.accuseVoted">Yes</button>
+      <button type="button" (click)="voteAccuse(false)" [disabled]="resting.state.accuseVoted">No</button>
+    </div>
   </div>
 </div>

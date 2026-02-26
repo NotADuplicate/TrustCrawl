@@ -177,3 +177,42 @@ button.ghost {
 	color: #94a3b8;
 	font-style: italic;
 }
+
+.modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(6, 10, 20, 0.75);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.5rem;
+	z-index: 20;
+}
+
+.modal-card {
+	width: min(420px, 100%);
+	background: rgba(15, 23, 42, 0.95);
+	border-radius: 16px;
+	padding: 1.75rem;
+	border: 1px solid rgba(148, 163, 184, 0.25);
+	box-shadow: 0 20px 60px rgba(5, 8, 20, 0.5);
+	text-align: center;
+}
+
+.modal-card h2 {
+	margin: 0 0 0.5rem;
+	color: #f8fafc;
+}
+
+.modal-card p {
+	margin: 0 0 1.25rem;
+	color: #cbd5f5;
+}
+
+.modal-actions {
+	display: flex;
+	gap: 0.75rem;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 1rem;
+}

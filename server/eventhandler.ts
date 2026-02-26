@@ -1,5 +1,8 @@
 import { Game } from "./game";
-import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant } from "./models/Events";
+import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant, Carcass, Spiders, SuspiciousMerchant, GiantBoar } from "./models/Events";
+import { Boss } from "./models/Events/boss";
+import { GamblingGround } from "./models/Events/gambling";
+import { Traps } from "./models/Events/traps";
 import { Event, EventResult } from "./models/event";
 import { Player } from "./models/player";
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -15,6 +18,7 @@ export class EventHandler {
     private currentEvent: Event;
     private previewLeft?: Event;
     private previewRight?: Event;
+    private lastThreeEvents: Event[] = [];
     eventActive = false;
 
     private readonly EventPool = [
@@ -25,7 +29,13 @@ export class EventHandler {
         Treasure,
         HotSpring,
         Cliff,
-        Merchant
+        Merchant,
+        Traps,
+        GamblingGround,
+        Carcass,
+        Spiders,
+        SuspiciousMerchant,
+        GiantBoar
     ];
 
     constructor(
@@ -70,25 +80,10 @@ export class EventHandler {
         }
 
         this.endContinues.add(player.name);
-        if (this.endContinues.size >= this.game.players.length) {
+        if (this.endContinues.size >= this.game.players.filter(p => p.health>0).length) {
             this.endContinues.clear();
             this.onEventFinished?.();
         }
-    }
-
-    handleContinue(player: Player): boolean {
-        throw new Error('handleContinue is deprecated. Use handleEventEndContinue instead.');
-        if (!this.game.gamePlayers) {
-            return false;
-        }
-
-        this.continues.add(player.name);
-        if (this.continues.size >= this.game.players.length) {
-            this.continues.clear();
-            // this.startEvent();
-            return true;
-        }
-        return false;
     }
 
     handleVote(socket: WebSocket, player: Player, optionIndex: number, quantity?: number): boolean {
@@ -110,7 +105,7 @@ export class EventHandler {
             const result = this.currentEvent.optionSelected(optionIndex, player, quantity);
             this.revealedPlayers.add(player.name);
             this.sendEventTo(socket, result);
-            if (this.revealedPlayers.size >= this.game.players.length) {
+            if (this.revealedPlayers.size >= this.game.players.filter(p => p.health>0).length) {
                 const result = this.currentEvent.eventEnded();
                 this.revealEvent(result);
                 return true;
@@ -118,7 +113,7 @@ export class EventHandler {
             return false;
         }
 
-        if (this.votes.size >= this.game.players.length) {
+        if (this.votes.size >= this.game.players.filter(p => p.health>0).length) {
             const result = this.groupEventResolve();
             this.revealEvent(result);
             return true;
@@ -135,7 +130,9 @@ export class EventHandler {
     }
 
     startEvent(direction: 'left' | 'right'): void {
+        console.log(`Starting event in direction`);
         this.currentEvent = direction === 'left' ? this.previewLeft! : this.previewRight!; 
+        this.game.currentEvent = this.currentEvent;
         this.eventActive = true;
         this.eventFinished = false;
         this.votes.clear();
@@ -144,17 +141,56 @@ export class EventHandler {
         this.eventStartedAt = Date.now();
         this.previewLeft = undefined;
         this.previewRight = undefined;
+
+        this.lastThreeEvents.push(this.currentEvent);
+        if (this.lastThreeEvents.length > 3) {
+            this.lastThreeEvents.shift();
+        }
+
         this.ensureEventTimer();
         this.broadcastEvent();
     }
 
     prepareRestPreviews(): void {
-        if (this.game.players.length === 0) {
+        if (this.game.players.filter(p => p.health>0).length === 0) {
             return;
         }
 
-        this.previewLeft = new (this.EventPool[Math.floor(Math.random() * this.EventPool.length)])(this.game.players);
-        this.previewRight = new (this.EventPool[Math.floor(Math.random() * this.EventPool.length)])(this.game.players);
+        this.previewLeft = this.pickEvent();
+        this.previewLeft.game = this.game;
+        this.previewRight = this.pickEvent();
+        this.previewRight.game = this.game;
+    }
+
+    pickEvent(): Event {
+        if(this.game.level >= 10 && this.game.level % 2 === 0) {
+            return new Boss(this.game.players);
+        }
+        const candidates = this.EventPool.map((EventType) => {
+            const instance = new EventType(this.game.players);
+            if(instance.title === this.currentEvent.title || this.lastThreeEvents.some(e => e.title === instance.title)) {
+                return { instance, weight: 0 };
+            }
+            instance.game = this.game;
+            console.log(instance.title, 'likelihood:', instance.eventLikelihood(this.game));
+            const weight = Math.max(0, instance.eventLikelihood(this.game));
+            return { instance, weight };
+        });
+
+        const totalWeight = candidates.reduce((sum, entry) => sum + entry.weight, 0);
+        if (totalWeight <= 0) {
+            return candidates[0]?.instance ?? new Rubble(this.game.players);
+        }
+
+        let roll = Math.random() * totalWeight;
+        for (const entry of candidates) {
+            roll -= entry.weight;
+            if (roll <= 0) {
+                return entry.instance;
+            }
+        }
+
+        return candidates[0].instance;
     }
 
     sendPreviewTo(client: WebSocket, direction: 'left' | 'right'): void {
@@ -185,11 +221,11 @@ export class EventHandler {
     }
 
     private ensureRandomVotes(): void {
-        if (this.game.players.length === 0) {
+        if (this.game.players.filter(p => p.health>0).length === 0) {
             return;
         }
 
-        for (const player of this.game.players) {
+        for (const player of this.game.players.filter(p => p.health>0)) {
             if (!this.votes.has(player.name)) {
                 let randomIndex = Math.floor(Math.random() * this.currentEvent.options.length);
                 while (!this.currentEvent.isOptionAvailable(randomIndex, player)) {

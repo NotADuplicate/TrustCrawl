@@ -17,6 +17,7 @@ export type EventMode = 'group' | 'individual';
 
 export class Event {
     selections: number = 0;
+    game?: Game;
     constructor(
         public title: string,
         public description: string,
@@ -43,5 +44,13 @@ export class Event {
 
     eventLikelihood(game: Game): number {
         return 1;
+    }
+
+    isStabable(): string[] {
+        return [];
+    }
+
+    stab(target: number): string {
+        return `You stabbed the ${this.title}!`;
     }
 }

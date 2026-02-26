@@ -19,6 +19,10 @@ export type RestingState = {
   carryingCapacity: number;
   scouting: 'left' | 'right' | 'neither';
   directionVote: 'left' | 'right' | null;
+  accuseActive: boolean;
+  accuseAccuser: string | null;
+  accuseAccused: string | null;
+  accuseVoted: boolean;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -34,12 +38,32 @@ export class RestingService {
     scouting: 'neither',
     carryingCapacity: 6,
     directionVote: null,
+    accuseActive: false,
+    accuseAccuser: null,
+    accuseAccused: null,
+    accuseVoted: false,
   };
 
   private readonly listeners: Array<() => void> = [];
 
   constructor(private readonly socket: SocketService) {
     this.socket.subscribe((data) => {
+      if (data.type === 'accuse') {
+        this.state.accuseActive = true;
+        this.state.accuseAccuser = String(data['accuser'] ?? '');
+        this.state.accuseAccused = String(data['accused'] ?? '');
+        this.state.accuseVoted = false;
+        return;
+      }
+
+      if (data.type === 'accuse:result') {
+        this.state.accuseActive = false;
+        this.state.accuseAccuser = null;
+        this.state.accuseAccused = null;
+        this.state.accuseVoted = false;
+        return;
+      }
+
       if (data.type !== 'rest') {
         return;
       }
@@ -149,6 +173,32 @@ export class RestingService {
     this.socket.send({ type: 'rest:continue', direction });
   }
 
+  accuse(targetName: string): void {
+    if (this.socket.status !== 'connected') {
+      return;
+    }
+
+    const trimmed = targetName.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    this.socket.send({ type: 'rest:accuse', accused: trimmed });
+  }
+
+  voteAccuse(vote: boolean): void {
+    if (this.socket.status !== 'connected') {
+      return;
+    }
+
+    if (this.state.accuseVoted) {
+      return;
+    }
+
+    this.state.accuseVoted = true;
+    this.socket.send({ type: 'accuse:vote', vote });
+  }
+
   reset(): void {
     this.state.title = '';
     this.state.skills = [];
@@ -158,5 +208,9 @@ export class RestingService {
     this.state.sequence = 0;
     this.state.continued = false;
     this.state.directionVote = null;
+    this.state.accuseActive = false;
+    this.state.accuseAccuser = null;
+    this.state.accuseAccused = null;
+    this.state.accuseVoted = false;
   }
 }

@@ -30,6 +30,13 @@ export class HotSpring extends Event {
         }
     }
 
+    override isOptionAvailable(optionNumber: number, player: Player): boolean {
+        if(optionNumber === 1) {
+            return !player.wounded;
+        }
+        return true;
+    }
+
     override eventEnded(): EventResult {
         if(this.watchers.length === 0) {
             for(const player of this.players) {
@@ -38,7 +45,7 @@ export class HotSpring extends Event {
             return { text: 'No one kept watch! Everyone took 1 damage!', color: 'danger' };
         }
         for(const player of this.players) {
-            if(!this.watchers.includes(player)) {
+            if(!this.watchers.includes(player) && player.dead === false) {
                 player.heal(1);
             }
         }
@@ -46,6 +53,6 @@ export class HotSpring extends Event {
     }
 
     override eventLikelihood(game: Game): number {
-        return game.floor > 3 ? 1 : 0
+        return game.level > 3 ? 1.5 : 0
     }
 }

@@ -1,3 +1,4 @@
+import { Game } from '../../game';
 import { Event, EventResult } from '../event';
 import { Player } from '../player';
 export class Monster extends Event {
@@ -39,5 +40,25 @@ export class Monster extends Event {
             return { text: 'The monster survived and dealt 1 damage to all players!', color: 'danger' };
         }
         return { text: 'The monster was defeated!', color: 'success' };
+    }
+
+    override isOptionAvailable(optionNumber: number, player: Player): boolean {
+        if(optionNumber === 1) {
+            return !player.wounded;
+        }
+        return true;
+    }
+
+    override eventLikelihood(game: Game): number {
+        return 2;
+    }
+
+    override isStabable(): string[] {
+        return ['Monster'];
+    }
+
+    override stab(target: number): string {
+        this.health -= 1;
+        return `You stabbed the monster, dealing 1 damage!`;
     }
 }

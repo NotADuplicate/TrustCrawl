@@ -33,6 +33,10 @@
 	</div>
 </div>
 
+<div class="level-display" *ngIf="showHud()">
+	Level {{ inventory.state.level }}
+</div>
+
 <button
 	class="inventory-button"
 	*ngIf="showHud()"
@@ -56,6 +60,23 @@
 		<h2>You are the Demon</h2>
 		<p>Only you can see demon hints in events.</p>
 		<button type="button" (click)="inventory.dismissDemonModal()">Understood</button>
+	</div>
+</div>
+
+<div class="modal" *ngIf="inventory.state.itemOptionActive">
+	<div class="modal-card">
+		<h2>Choose a target</h2>
+		<p>Select who to use {{ inventory.state.itemOptionItemName }} on.</p>
+		<div class="modal-actions">
+			<button
+				type="button"
+				*ngFor="let option of inventory.state.itemOptionChoices; let idx = index"
+				(click)="useItemOption(idx)"
+			>
+				{{ option }}
+			</button>
+		</div>
+		<button type="button" class="ghost" (click)="closeItemOptions()">Cancel</button>
 	</div>
 </div>
 

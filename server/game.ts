@@ -1,21 +1,25 @@
 import { Item } from "./models/item";
-import { Tea } from "./models/Items/Equipment/caffeine";
+import { Tea } from "./models/Items/Equipment/tea";
 import { Satchel } from "./models/Items/Equipment/satchel";
 import { Food } from "./models/Items/Supplies/food";
 import { Tool } from "./models/Items/Supplies/tool";
 import { Player } from "./models/player";
 import { type WebSocket } from 'ws';
+import { Event } from "./models/event";
+import { Bandadge } from "./models/Items/Equipment/bandadge";
+import { Shiv } from "./models/Items/Supplies/shiv";
 
 export class Game {
     readonly clients = new Map<WebSocket, Player>();
     readonly players: Player[] = [];
     private readonly pendingDisconnects = new Map<string, NodeJS.Timeout>();
     private readonly disconnectGraceMs: number;
-    public floor: number = 1;
+    public level: number = 1;
     hostSocket: WebSocket | undefined;
     gamePlayers: Player[] | undefined;
     floorItems: Item[] = [];
     demonName: string | null = null;
+    currentEvent: Event | null = null;
 
     constructor(disconnectGraceMs = 60_000) {
         this.disconnectGraceMs = disconnectGraceMs;
@@ -24,7 +28,7 @@ export class Game {
     addPlayer(socket: WebSocket, name: string): Player {
         let player = this.players.find((entry) => entry.name === name);
         if (!player) {
-            player = new Player(name);
+            player = new Player(name, this);
             this.players.push(player);
         }
 
@@ -88,11 +92,13 @@ export class Game {
     }
 
     resetGameState(): void {
+        console.log('Resetting game state.');
         this.gamePlayers = undefined;
         this.floorItems = [];
         this.hostSocket = undefined;
         this.demonName = null;
         this.players.length = 0;
+        this.level = 0;
         this.clients.clear();
         for (const timeout of this.pendingDisconnects.values()) {
             clearTimeout(timeout);
@@ -135,9 +141,8 @@ export class Game {
             player.health = 3;
             player.stamina = 3;
             player.addItem(new Food());
+            player.addItem(new Food());
             player.addItem(new Tool());
-            player.addItem(new Satchel());
-            player.addItem(new Tea());
         }
 
         //this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
@@ -155,6 +160,7 @@ export class Game {
         return JSON.stringify({
             type: 'game',
             isDemon: playerName === this.demonName,
+            level: this.level,
             players: this.gamePlayers.map((player) => ({
                 name: player.name,
                 health: player.health,
@@ -164,14 +170,14 @@ export class Game {
                     name: item.name,
                     description: item.description,
                     weight: item.weight,
-                    usable: item.isUsable(),
+                    usable: item.isUsable(this, player),
                 })),
             })),
             floor: this.floorItems.map((item) => ({
                 name: item.name,
                 description: item.description,
                 weight: item.weight,
-                usable: item.isUsable(),
+                usable: false,
             })),
         });
     }
@@ -222,8 +228,15 @@ export class Game {
     }
 
     moveToInventory(player: Player, itemName: string): boolean {
+        console.log(`${player.name} is trying to move ${itemName} to their inventory.`);
         if (!this.gamePlayers) {
             return false;
+        }
+
+        if(player.health < 1) {
+            if(itemName != 'Food' || player.inventory.length > 1) {
+                return false;
+            }
         }
 
         const index = this.floorItems.findIndex((item) => item.name === itemName);
@@ -243,11 +256,41 @@ export class Game {
         }
 
         const item = player.inventory.find((entry) => entry.name === itemName);
-        if (!item || !item.isUsable()) {
+        if (!item || !item.isUsable(this, player)) {
             return false;
         }
 
-        const result = item.use(player);
+        const result = item.use(this, player);
+        console.log(result);
+        this.broadcastGame();
+        return true;
+    }
+
+    getItemOptions(player: Player, itemName: string): string[] | null {
+        console.log(`${player.name} is requesting options for ${itemName}.`);
+        if (!this.gamePlayers) {
+            return null;
+        }
+
+        const item = player.inventory.find((entry) => entry.name === itemName);
+        if (!item || !item.isUsable(this, player)) {
+            return null;
+        }
+
+        return item.getOptions(this, player);
+    }
+
+    useItemWithOption(player: Player, itemName: string, optionIndex: number): boolean {
+        if (!this.gamePlayers) {
+            return false;
+        }
+
+        const item = player.inventory.find((entry) => entry.name === itemName);
+        if (!item || !item.isUsable(this, player)) {
+            return false;
+        }
+
+        const result = item.useWithOption(this, player, optionIndex);
         console.log(result);
         this.broadcastGame();
         return true;

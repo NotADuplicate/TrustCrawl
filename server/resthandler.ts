@@ -2,15 +2,25 @@ import { type WebSocket } from 'ws';
 import { Game } from './game';
 import { Skill } from './models/skill';
 import { Player } from './models/player';
-import { Craft, Scavenge, Haul, Mend, Scout } from './models/Skills';
+import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare } from './models/Skills';
+import { Chest } from './models/Items/chest';
+import { Key } from './models/Items/Supplies/key';
+import { Food } from './models/Items/Supplies/food';
+import { Tool } from './models/Items/Supplies/tool';
+import { Gold } from './models/Items/Supplies/gold';
+import { Shiv } from './models/Items/Supplies/shiv';
 
 export class RestHandler {
     private readonly skillPool: Skill[] = [
-        new Craft(),
-        new Scout(),
         new Scavenge(),
+        new Scout(),
+        new Forage(),
         new Haul(),
         new Mend(),
+        new Hunt(),
+        new Cook(),
+        new Craft(),
+        new Prepare(),
     ];
 
     private readonly playerSkills = new Map<string, Skill[]>();
@@ -18,6 +28,8 @@ export class RestHandler {
     private readonly skillTexts = new Map<string, string>();
     private readonly eatenStatus = new Map<string, boolean>();
     private readonly continueVotes = new Map<string, 'left' | 'right'>();
+    private readonly accuseVotes = new Map<string, boolean>();
+    private currentAccuse: { accuser: string; accused: string } | null = null;
     restActive = false;
 
     constructor(
@@ -37,6 +49,8 @@ export class RestHandler {
         this.skillTexts.clear();
         this.eatenStatus.clear();
         this.continueVotes.clear();
+        this.accuseVotes.clear();
+        this.currentAccuse = null;
     }
 
     endRest(): void {
@@ -45,6 +59,9 @@ export class RestHandler {
         this.skillTexts.clear();
         this.eatenStatus.clear();
         this.continueVotes.clear();
+        this.accuseVotes.clear();
+        this.currentAccuse = null;
+        this.game.floorItems = [];
     }
 
     handleDisconnect(player: Player): void {
@@ -53,6 +70,51 @@ export class RestHandler {
         this.skillTexts.delete(player.name);
         this.eatenStatus.delete(player.name);
         this.continueVotes.delete(player.name);
+        this.accuseVotes.delete(player.name);
+    }
+
+    handleAccuse(player: Player, targetName: string): void {
+        if (!this.restActive) {
+            return;
+        }
+
+        const trimmedTarget = targetName.trim();
+        if (!trimmedTarget || trimmedTarget === player.name) {
+            return;
+        }
+
+        const target = this.game.players.find((entry) => entry.name === trimmedTarget);
+        if (!target) {
+            return;
+        }
+
+        this.currentAccuse = { accuser: player.name, accused: trimmedTarget };
+        this.accuseVotes.clear();
+        this.broadcastAccuse();
+    }
+
+    handleAccuseVote(player: Player, vote: boolean): void {
+        if (!this.currentAccuse) {
+            return;
+        }
+
+        this.accuseVotes.set(player.name, vote);
+        if (this.accuseVotes.size < this.game.players.filter(p => p.health>0).length) {
+            return;
+        }
+
+        const yesVotes = Array.from(this.accuseVotes.values()).filter((value) => value).length;
+        const noVotes = this.accuseVotes.size - yesVotes;
+        const accused = this.currentAccuse.accused;
+        if (yesVotes > noVotes) {
+            const target = this.game.players.find((entry) => entry.name === accused);
+            if (target) {
+                target.health = -1;
+            }
+        }
+        this.accuseVotes.clear();
+        this.currentAccuse = null;
+        this.broadcastAccuseResult(accused, yesVotes, noVotes);
     }
 
     handleContinueVote(player: Player, direction: 'left' | 'right'): void {
@@ -61,7 +123,7 @@ export class RestHandler {
         }
 
         this.continueVotes.set(player.name, direction);
-        if (this.continueVotes.size < this.game.players.length) {
+        if (this.continueVotes.size < this.game.players.filter(p => p.health>0).length) {
             return;
         }
 
@@ -148,8 +210,23 @@ export class RestHandler {
         }
     }
 
+    findItem(): void {
+        console.log('Finding item for rest phase.');
+        if(Math.random() < 0.5) {
+            const value = Math.round(Math.random() * 7) + 1;
+            const chest = new Chest(value);
+            this.game.floorItems.push(chest);
+            return;
+        }
+        const supplies = [Food, Key, Tool, Gold, Shiv];
+        const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
+        const item = new supplyType();
+        this.game.floorItems.push(item);
+    }
+
     startRest(): void {
-        if (this.game.players.length === 0) {
+        console.log('Starting rest phase.');
+        if (this.game.players.filter(p => p.health>0).length === 0) {
             return;
         }
 
@@ -159,13 +236,20 @@ export class RestHandler {
         this.skillTexts.clear();
         this.eatenStatus.clear();
         this.continueVotes.clear();
+        this.accuseVotes.clear();
+        this.currentAccuse = null;
+        this.findItem();
         for (const player of this.game.players) {
             player.sleeping = true;
+            player.scouting = 'neither';
+            player.hauling = false;
             this.getSkillsForPlayer(player.name);
             this.eatenStatus.set(player.name, false);
         }
+        this.game.level++;
         this.onRestStarted?.();
         this.broadcastRest();
+        this.game.broadcastGame();
     }
 
     sendRestTo(socket: WebSocket): void {
@@ -215,13 +299,21 @@ export class RestHandler {
         if (existing) {
             return existing;
         }
+        const player = this.game.players.find((p) => p.name === playerName);
+        
 
         const picks = this.pickSkills(2);
+        if (player?.preppedSkill) {
+            if (!picks.some((s) => s.name === player.preppedSkill!.name)) {
+                picks[0] = player.preppedSkill;
+            }
+            player.preppedSkill = null;
+        }
         this.playerSkills.set(playerName, picks);
         return picks;
     }
 
-    private pickSkills(count: number): Skill[] {
+    public pickSkills(count: number): Skill[] {
         const pool = [...this.skillPool];
         const selected: Skill[] = [];
         while (selected.length < count && pool.length > 0) {
@@ -251,6 +343,35 @@ export class RestHandler {
                 const payload = this.buildRestPayload(player);
                 client.send(payload);
                 return;
+            }
+        }
+    }
+
+    private broadcastAccuse(): void {
+        if (!this.currentAccuse) {
+            return;
+        }
+
+        for (const client of this.game.clients.keys()) {
+            if (client.readyState === client.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'accuse',
+                    accuser: this.currentAccuse.accuser,
+                    accused: this.currentAccuse.accused,
+                }));
+            }
+        }
+    }
+
+    private broadcastAccuseResult(accused: string, yesVotes: number, noVotes: number): void {
+        for (const client of this.game.clients.keys()) {
+            if (client.readyState === client.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'accuse:result',
+                    accused,
+                    yesVotes,
+                    noVotes,
+                }));
             }
         }
     }

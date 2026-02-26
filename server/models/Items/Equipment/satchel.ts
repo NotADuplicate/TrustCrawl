@@ -1,3 +1,4 @@
+import { Game } from '../../../game';
 import { Item } from '../../item';
 import { Player } from '../../player';
 import { Food } from '../Supplies/food';
@@ -8,7 +9,7 @@ export class Satchel extends Item {
         super('Satchel', 'Can open at any time to produce 3 random supplies.', 1, 2)
      }
 
-    override use(player: Player): string {
+    override use(game: Game, player: Player): string {
         const supplies = [Food, Tool, Key];
         const numSupplies = 3; // Always 3 supplies
         let result = 'You opened the satchel and found:\n';
@@ -22,7 +23,7 @@ export class Satchel extends Item {
         return result;
      }
 
-     override isUsable(): boolean {
+     override isUsable(game: Game, player: Player): boolean {
         return true;
      }
 }

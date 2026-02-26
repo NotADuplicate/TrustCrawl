@@ -48,6 +48,8 @@ wss.on('connection', (socket) => {
                 quantity?: number;
                 direction?: string;
                 optionChoice?: string;
+                accused?: string;
+                vote?: boolean;
             };
 
             if (data.type === 'join' && data.name) {
@@ -103,12 +105,32 @@ wss.on('connection', (socket) => {
             }
 
             if (data.type === 'useItem' && data.itemName && game.gamePlayers) {
+                console.log(`${data.name} is trying to use ${data.itemName}.`);
                 const clientInfo = game.clients.get(socket);
                 if (!clientInfo) {
                     return;
                 }
 
-                game.useItem(clientInfo, data.itemName);
+                const options = game.getItemOptions(clientInfo, data.itemName) ?? [];
+                if (options.length === 0) {
+                    game.useItem(clientInfo, data.itemName);
+                } else if (socket.readyState === socket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'item-options',
+                        itemName: data.itemName,
+                        options,
+                    }));
+                    console.log(`Sent options for ${data.itemName} to ${clientInfo.name}.`);
+                }
+            }
+
+            if (data.type === 'useItemOption' && data.itemName && typeof data.optionIndex === 'number' && game.gamePlayers) {
+                const clientInfo = game.clients.get(socket);
+                if (!clientInfo) {
+                    return;
+                }
+
+                game.useItemWithOption(clientInfo, data.itemName, data.optionIndex);
             }
 
             if (data.type === 'vote' && typeof data.optionIndex === 'number' && eventHandler.eventActive) {
@@ -125,16 +147,7 @@ wss.on('connection', (socket) => {
             }
 
             if (data.type === 'continue' && game.gamePlayers) {
-                const clientInfo = game.clients.get(socket);
-                if (!clientInfo) {
-                    return;
-                }
-
-                const started = eventHandler.handleContinue(clientInfo);
-                if (started) {
-                    game.floor += 1;
-                    restHandler.endRest();
-                }
+                throw new Error('Use rest:continue instead of continue for resting continues.');
             }
 
             if (data.type === 'rest:continue' && typeof data.direction === 'string' && game.gamePlayers) {
@@ -188,6 +201,24 @@ wss.on('connection', (socket) => {
                 restHandler.sendRestTo(socket);
             }
 
+            if (data.type === 'rest:accuse' && typeof data.accused === 'string' && game.gamePlayers) {
+                const clientInfo = game.clients.get(socket);
+                if (!clientInfo) {
+                    return;
+                }
+
+                restHandler.handleAccuse(clientInfo, data.accused);
+            }
+
+            if (data.type === 'accuse:vote' && typeof data.vote === 'boolean' && game.gamePlayers) {
+                const clientInfo = game.clients.get(socket);
+                if (!clientInfo) {
+                    return;
+                }
+
+                restHandler.handleAccuseVote(clientInfo, data.vote);
+            }
+
             if (data.type === 'rest:eat' && typeof data.eatAmount === 'number') {
                 const clientInfo = game.clients.get(socket);
                 if (!clientInfo) {
@@ -207,15 +238,14 @@ wss.on('connection', (socket) => {
         if (game.clients.has(socket)) {
             console.log('A socket disconnected.');
             console.log("Number of open sockets:", game.clients.size - 1);
-            game.markDisconnected(socket, (player) => {
-                eventHandler.handleDisconnect(player);
-                restHandler.handleDisconnect(player);
-
-                if (game.players.length === 0) {
+                if (game.clients.size === 1) {
                     game.resetGameState();
                     eventHandler.resetAll();
                     restHandler.resetAll();
                 }
+            game.markDisconnected(socket, (player) => {
+                eventHandler.handleDisconnect(player);
+                restHandler.handleDisconnect(player);
             });
         }
     });

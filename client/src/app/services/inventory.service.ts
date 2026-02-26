@@ -27,8 +27,12 @@ export type InventoryState = {
   gameStarted: boolean;
   gamePlayers: PlayerState[];
   floorItems: GameItem[];
+  level: number;
   isDemon: boolean;
   showDemonModal: boolean;
+  itemOptionActive: boolean;
+  itemOptionItemName: string | null;
+  itemOptionChoices: string[];
 };
 
 @Injectable({ providedIn: 'root' })
@@ -40,8 +44,12 @@ export class InventoryService {
     gameStarted: false,
     gamePlayers: [],
     floorItems: [],
+    level: 1,
     isDemon: false,
     showDemonModal: false,
+    itemOptionActive: false,
+    itemOptionItemName: null,
+    itemOptionChoices: [],
   };
 
   private readonly storageKey = 'trust-crawl-name';
@@ -69,9 +77,17 @@ export class InventoryService {
         this.state.gameStarted = true;
         this.state.gamePlayers = data['players'] as PlayerState[];
         this.state.floorItems = data['floor'] as GameItem[];
+        this.state.level = typeof data['level'] === 'number' ? data['level'] : this.state.level;
         this.state.isDemon = Boolean(data['isDemon']);
         const shouldShow = this.state.isDemon && !this.demonModalDismissed;
         this.state.showDemonModal = shouldShow;
+      }
+
+      if (data.type === 'item-options') {
+        this.state.itemOptionActive = true;
+        this.state.itemOptionItemName = typeof data['itemName'] === 'string' ? data['itemName'] : null;
+        this.state.itemOptionChoices = Array.isArray(data['options']) ? (data['options'] as string[]) : [];
+        console.log(`Received options for ${this.state.itemOptionItemName}: ${this.state.itemOptionChoices.join(', ')}`);
       }
     });
 
@@ -213,6 +229,22 @@ export class InventoryService {
     this.socket.send({ type: 'useItem', itemName });
   }
 
+  useItemWithOption(itemName: string, optionIndex: number): void {
+    if (!itemName || !this.connected || !this.state.gameStarted) {
+      return;
+    }
+
+    this.socket.send({ type: 'useItemOption', itemName, optionIndex });
+    this.clearItemOptions();
+  }
+
+  clearItemOptions(): void {
+    console.log('Clearing item options.');
+    this.state.itemOptionActive = false;
+    this.state.itemOptionItemName = null;
+    this.state.itemOptionChoices = [];
+  }
+
   dismissDemonModal(): void {
     this.state.showDemonModal = false;
     this.demonModalDismissed = true;
@@ -241,8 +273,12 @@ export class InventoryService {
     this.state.gameStarted = false;
     this.state.gamePlayers = [];
     this.state.floorItems = [];
+    this.state.level = 1;
     this.state.isDemon = false;
     this.state.showDemonModal = false;
+    this.state.itemOptionActive = false;
+    this.state.itemOptionItemName = null;
+    this.state.itemOptionChoices = [];
     if (clearName) {
       this.state.name = '';
     }

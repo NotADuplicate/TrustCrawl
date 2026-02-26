@@ -13,17 +13,20 @@ type Sale = {
     quantity: number;
     price: number;
 }
-export class Merchant extends Event {
+export class SuspiciousMerchant extends Event {
     sales: Sale[] = [];
+    stealPrice: number;
     constructor(players: Player[]) {
         super(
-            'Merchant',
-            `A humble merchant offers you her wares.`,
+            'Suspicious Merchant',
+            `This merchant offers excellent prices, almost too good to be true.
+            \n You fear there's a chance that they might run off with your gold without giving you the item, probably more likely to happen if you buy more expensive items.`,
             [],
             'individual',
             players
         );
         const numOfferings = Math.floor(Math.random() * 2) + 3;
+        this.stealPrice = Math.floor(Math.random() * 7);
         for(let i = 0; i < numOfferings; i++) {
             let newSale = this.pickItemToSell();
             while(this.sales.some((sale) => sale.item.name === newSale.item.name)) {
@@ -36,7 +39,8 @@ export class Merchant extends Event {
                 description: 'Leave the merchant alone and continue on your way.',
             },
             ...this.sales.map((sale) => ({
-                description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`
+                description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`,
+                demonText: sale.price >= this.stealPrice ? 'The merchant will steal your gold!' : ''
             }))
         ]   
     }
@@ -71,7 +75,7 @@ export class Merchant extends Event {
             const item = new supplyType();
             const price = item.value * (0.7 + Math.random()*0.7);
             const quantity = supplyType === Food ? Math.floor(Math.random() * 4) + 2 : Math.floor(Math.random() * 3)+1;
-            return { item, quantity, price: Math.round(price * quantity) };
+            return { item, quantity: quantity*2, price: Math.round(price * quantity) };
         }
         console.log('Merchant is selling equipment.');
         const items = [Balloon, Tea, Satchel, Club, HeavyClub, Armor, Shovel];
@@ -79,8 +83,11 @@ export class Merchant extends Event {
         const index = Math.floor(Math.random() * sellable.length);
         const itemType = sellable[index];
         const item = new itemType();
-        const price = Math.round(item.value * (0.7 + Math.random()*0.7));
-        return { item, quantity: 1, price };
+        let price = Math.round(item.value * (0.4 + Math.random()*0.4));
+        let quantity = 1;
+        if(price == 0) { quantity = 2; price = 1; }
+        else if(price == 1 && Math.random() < 0.4) { quantity = 2; price = 2; }
+        return { item, quantity, price };
     }
 
     override eventLikelihood(game: Game): number {
@@ -91,7 +98,7 @@ export class Merchant extends Event {
                 const hasTreasure = player.inventory.some((item) => item.name === 'Treasure');
                 return total + goldCount + (hasTreasure ? 3 : 0);
             }, 0);
-            return 1+3*totalGold/game.players.filter((player) => player.health > 0).length;
+            return 1+totalGold/game.players.filter((player) => player.health > 0).length;
         }
         return 0;
     }
