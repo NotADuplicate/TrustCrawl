@@ -145,7 +145,9 @@ export class Game {
             player.addItem(new Tool());
         }
 
-        //this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
+        if(this.players.length > 2 || Math.random() < 0.5) {
+            this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
+        }
         this.floorItems = [];
         this.broadcastState();
         this.broadcastGame();
