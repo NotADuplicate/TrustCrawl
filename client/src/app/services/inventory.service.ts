@@ -60,34 +60,26 @@ export class InventoryService {
   constructor(private readonly socket: SocketService) {
     this.socket.subscribe((data) => {
       if (data.type === 'state' && Array.isArray(data['players'])) {
-        const startedNow = Boolean(data['gameStarted']);
-        const wasStarted = this.state.gameStarted;
-        this.state.players = data['players'] as string[];
-        this.state.isHost = Boolean(data['isHost']);
-        this.state.gameStarted = startedNow;
-
-        if (startedNow && !wasStarted) {
-          for (const listener of this.gameStartListeners) {
-            listener();
-          }
-        }
+        this.applyLobbyState(
+          data['players'] as string[],
+          Boolean(data['isHost']),
+          Boolean(data['gameStarted']),
+        );
       }
 
       if (data.type === 'game' && Array.isArray(data['players']) && Array.isArray(data['floor'])) {
-        this.state.gameStarted = true;
-        this.state.gamePlayers = data['players'] as PlayerState[];
-        this.state.floorItems = data['floor'] as GameItem[];
-        this.state.level = typeof data['level'] === 'number' ? data['level'] : this.state.level;
-        this.state.isDemon = Boolean(data['isDemon']);
-        const shouldShow = this.state.isDemon && !this.demonModalDismissed;
-        this.state.showDemonModal = shouldShow;
+        this.applyGameState(
+          data['players'] as PlayerState[],
+          data['floor'] as GameItem[],
+          typeof data['level'] === 'number' ? data['level'] : this.state.level,
+          Boolean(data['isDemon']),
+        );
       }
 
       if (data.type === 'item-options') {
         this.state.itemOptionActive = true;
         this.state.itemOptionItemName = typeof data['itemName'] === 'string' ? data['itemName'] : null;
         this.state.itemOptionChoices = Array.isArray(data['options']) ? (data['options'] as string[]) : [];
-        console.log(`Received options for ${this.state.itemOptionItemName}: ${this.state.itemOptionChoices.join(', ')}`);
       }
     });
 
@@ -97,7 +89,6 @@ export class InventoryService {
         this.state.name = savedName;
         const dismissedKey = this.getDemonDismissedKey(savedName);
         this.demonModalDismissed = localStorage.getItem(dismissedKey) === 'true';
-        this.connect();
       }
     }
   }
@@ -121,9 +112,7 @@ export class InventoryService {
   }
 
   get myInventory(): GameItem[] {
-    const selfName = this.state.name.trim();
-    const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
-    return player?.inventory ?? [];
+    return this.currentPlayer?.inventory ?? [];
   }
 
   get myInventoryStacked(): StackedItem[] {
@@ -154,21 +143,15 @@ export class InventoryService {
   }
 
   get myHealth(): number {
-    const selfName = this.state.name.trim();
-    const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
-    return player?.health ?? 0;
+    return this.currentPlayer?.health ?? 0;
   }
 
   get myStamina(): number {
-    const selfName = this.state.name.trim();
-    const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
-    return player?.stamina ?? 0;
+    return this.currentPlayer?.stamina ?? 0;
   }
 
   get myWellFed(): boolean {
-    const selfName = this.state.name.trim();
-    const player = this.state.gamePlayers.find((entry) => entry.name === selfName);
-    return Boolean(player?.wellFed);
+    return Boolean(this.currentPlayer?.wellFed);
   }
 
   updateName(name: string): void {
@@ -206,7 +189,7 @@ export class InventoryService {
   }
 
   moveToFloor(itemName: string): void {
-    if (!itemName || !this.connected || !this.state.gameStarted) {
+    if (!this.canSendGameAction(itemName)) {
       return;
     }
 
@@ -214,7 +197,7 @@ export class InventoryService {
   }
 
   moveToInventory(itemName: string): void {
-    if (!itemName || !this.connected || !this.state.gameStarted) {
+    if (!this.canSendGameAction(itemName)) {
       return;
     }
 
@@ -222,7 +205,7 @@ export class InventoryService {
   }
 
   useItem(itemName: string): void {
-    if (!itemName || !this.connected || !this.state.gameStarted) {
+    if (!this.canSendGameAction(itemName)) {
       return;
     }
 
@@ -230,7 +213,7 @@ export class InventoryService {
   }
 
   useItemWithOption(itemName: string, optionIndex: number): void {
-    if (!itemName || !this.connected || !this.state.gameStarted) {
+    if (!this.canSendGameAction(itemName)) {
       return;
     }
 
@@ -239,10 +222,7 @@ export class InventoryService {
   }
 
   clearItemOptions(): void {
-    console.log('Clearing item options.');
-    this.state.itemOptionActive = false;
-    this.state.itemOptionItemName = null;
-    this.state.itemOptionChoices = [];
+    this.resetItemOptions();
   }
 
   dismissDemonModal(): void {
@@ -267,6 +247,44 @@ export class InventoryService {
     return `${this.demonDismissedKeyPrefix}:${name.trim()}`;
   }
 
+  private get currentPlayer(): PlayerState | undefined {
+    const selfName = this.state.name.trim();
+    return this.state.gamePlayers.find((entry) => entry.name === selfName);
+  }
+
+  private canSendGameAction(itemName: string): boolean {
+    return Boolean(itemName && this.connected && this.state.gameStarted);
+  }
+
+  private applyLobbyState(players: string[], isHost: boolean, gameStarted: boolean): void {
+    const startedNow = gameStarted;
+    const wasStarted = this.state.gameStarted;
+    this.state.players = players;
+    this.state.isHost = isHost;
+    this.state.gameStarted = startedNow;
+
+    if (startedNow && !wasStarted) {
+      for (const listener of this.gameStartListeners) {
+        listener();
+      }
+    }
+  }
+
+  private applyGameState(players: PlayerState[], floorItems: GameItem[], level: number, isDemon: boolean): void {
+    this.state.gameStarted = true;
+    this.state.gamePlayers = players;
+    this.state.floorItems = floorItems;
+    this.state.level = level;
+    this.state.isDemon = isDemon;
+    this.state.showDemonModal = isDemon && !this.demonModalDismissed;
+  }
+
+  private resetItemOptions(): void {
+    this.state.itemOptionActive = false;
+    this.state.itemOptionItemName = null;
+    this.state.itemOptionChoices = [];
+  }
+
   private resetState(clearName: boolean): void {
     this.state.players = [];
     this.state.isHost = false;
@@ -276,9 +294,7 @@ export class InventoryService {
     this.state.level = 1;
     this.state.isDemon = false;
     this.state.showDemonModal = false;
-    this.state.itemOptionActive = false;
-    this.state.itemOptionItemName = null;
-    this.state.itemOptionChoices = [];
+    this.resetItemOptions();
     if (clearName) {
       this.state.name = '';
     }

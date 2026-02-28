@@ -37,6 +37,9 @@
       <span class="dot" [class.connected]="inventory.connected"></span>
       <span class="text">Status: {{ inventory.status }}</span>
     </div>
+    <p class="reconnect-hint" *ngIf="showReconnectHint()">
+      Disconnected. Click Connect to join again with this saved name and resume if your player is still active.
+    </p>
 
     <section class="host" *ngIf="inventory.connected">
       <h2>Host controls</h2>
@@ -51,7 +54,7 @@
 
     <section class="players">
       <h2>Other connected players</h2>
-      <p *ngIf="!inventory.connected">Connect to see who is online.</p>
+      <p *ngIf="!inventory.connected">{{ showReconnectHint() ? 'Reconnect to resume and see who is still online.' : 'Connect to see who is online.' }}</p>
       <ul *ngIf="inventory.connected">
         <li *ngFor="let player of inventory.otherPlayers">
           {{ player }}

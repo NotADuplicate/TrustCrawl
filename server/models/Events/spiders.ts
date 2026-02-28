@@ -1,6 +1,7 @@
 import { Game } from '../../game';
 import { Event, EventResult } from '../event';
 import { Food } from '../Items/Supplies/food';
+import { Gold } from '../Items/Supplies/gold';
 import { Player } from '../player';
 export class Spiders extends Event {
     health1: number;
@@ -75,7 +76,7 @@ export class Spiders extends Event {
             this.game?.floorItems.push(...Array(this.foodAmount).fill(new Food()));
         }
         if(this.health2 <= 0) {
-            this.game?.floorItems.push(...Array(this.goldAmount).fill({ name: 'Gold' }));
+            this.game?.floorItems.push(...Array(this.goldAmount).fill(new Gold()));
         }
         if(this.health1 <= 0 && this.health2 <= 0) {
             return { text: `You killed both spiders and gathered ${this.foodAmount} food and ${this.goldAmount} gold!`, color: 'success' };

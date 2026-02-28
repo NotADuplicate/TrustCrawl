@@ -9,8 +9,6 @@ export class Service {
     public refresh() {
         if (this.cdr) {
             this.cdr.detectChanges();
-        } else {
-            console.warn('ChangeDetectorRef not registered, cannot refresh view');
         }
     }
 }

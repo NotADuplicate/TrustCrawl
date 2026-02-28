@@ -10,8 +10,7 @@ export class Treasure extends Item {
 
      override isUsable(game: Game, player: Player): boolean {
         console.log(`Checking if ${this.name} is usable. Current event: ${game.currentEvent?.title}`);
-        return true;
-         return game.currentEvent instanceof SuspiciousMerchant || game.currentEvent instanceof Merchant;
+        return game.currentEvent instanceof SuspiciousMerchant || game.currentEvent instanceof Merchant;
      }
 
      override use(game: Game, player: Player): string {

@@ -1,13 +1,23 @@
-import { NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { InventoryService } from '../../services/inventory.service';
 import { RestingService } from '../../services/resting.service';
 import { EventService } from '../../services/event.service';
 
+type RestingModal =
+  | 'eat'
+  | 'weight'
+  | 'target'
+  | 'direction'
+  | 'map'
+  | 'option'
+  | 'accuse'
+  | 'body';
+
 @Component({
   selector: 'app-resting-page',
-  imports: [NgIf, NgFor],
+  imports: [NgIf, NgFor, NgTemplateOutlet],
   templateUrl: './resting.page.html',
   styleUrl: './resting.page.scss'
 })
@@ -16,16 +26,9 @@ export class RestingPage {
   protected readonly inventory = inject(InventoryService);
   protected readonly resting = inject(RestingService);
   protected readonly event = inject(EventService);
-  protected readonly showEatPrompt = signal(false);
-  protected readonly showWeightWarning = signal(false);
-  protected readonly showTargetPrompt = signal(false);
+  protected readonly activeModal = signal<RestingModal | null>(null);
   protected readonly pendingTargetSkill = signal<number | null>(null);
-  protected readonly showDirectionPrompt = signal(false);
-  protected readonly showMapPrompt = signal(false);
-  protected readonly showOptionPrompt = signal(false);
   protected readonly pendingOptionSkill = signal<number | null>(null);
-  protected readonly showAccusePrompt = signal(false);
-  protected readonly showBodyWarning = signal(false);
   protected readonly pendingBodyItemName = signal<string | null>(null);
 
   constructor() {
@@ -35,40 +38,45 @@ export class RestingPage {
   protected pickSkill(index: number): void {
     const skill = this.resting.state.skills[index];
     if (skill?.targeted) {
-        console.log(`Skill ${skill.name} is targeted, prompting for target selection`);
       this.pendingTargetSkill.set(index);
-      this.showTargetPrompt.set(true);
+      this.openModal('target');
       return;
     }
 
     if (skill?.options && skill.options.length > 0) {
-        console.log(`Skill ${skill.name} has options: ${skill.options.join(', ')}`);
       this.pendingOptionSkill.set(index);
-      this.showOptionPrompt.set(true);
+      this.openModal('option');
       return;
     }
 
     this.resting.pickSkill(index);
   }
 
-  protected openEatPrompt(): void {
-    this.showEatPrompt.set(true);
+  protected openModal(modal: RestingModal): void {
+    this.activeModal.set(modal);
   }
 
-  protected closeEatPrompt(): void {
-    this.showEatPrompt.set(false);
+  protected closeModal(modal?: RestingModal): void {
+    if (modal && this.activeModal() !== modal) {
+      return;
+    }
+
+    this.activeModal.set(null);
+  }
+
+  protected isModalOpen(modal: RestingModal): boolean {
+    return this.activeModal() === modal;
   }
 
   protected eat(amount: number): void {
     this.resting.eatFood(amount);
-    this.showEatPrompt.set(false);
+    this.closeModal('eat');
     this.resting.requestResting();
   }
 
   protected continueToEvent(): void {
     if (this.inventory.myInventoryWeight > this.resting.state.carryingCapacity) {
-        console.log('Too much weight to continue');
-      this.showWeightWarning.set(true);
+      this.openModal('weight');
       return;
     }
 
@@ -77,70 +85,25 @@ export class RestingPage {
     );
     if (bodyItem) {
       this.pendingBodyItemName.set(bodyItem.name);
-      this.showBodyWarning.set(true);
+      this.openModal('body');
       return;
     }
 
-    this.showDirectionPrompt.set(true);
-  }
-
-  protected closeWeightWarning(): void {
-    this.showWeightWarning.set(false);
-  }
-
-  protected closeBodyWarning(): void {
-    this.showBodyWarning.set(false);
-    this.pendingBodyItemName.set(null);
-  }
-
-  protected confirmBodyWarning(): void {
-    this.showBodyWarning.set(false);
-    this.pendingBodyItemName.set(null);
-    this.showDirectionPrompt.set(true);
-  }
-
-  protected closeTargetPrompt(): void {
-    this.showTargetPrompt.set(false);
-    this.pendingTargetSkill.set(null);
-  }
-
-  protected closeOptionPrompt(): void {
-    this.showOptionPrompt.set(false);
-    this.pendingOptionSkill.set(null);
-  }
-
-  protected closeDirectionPrompt(): void {
-    this.showDirectionPrompt.set(false);
+    this.openModal('direction');
   }
 
   protected selectDirection(direction: 'left' | 'right'): void {
     this.resting.continue(direction);
-    this.showDirectionPrompt.set(false);
-  }
-
-  protected openMapPrompt(): void {
-    this.showMapPrompt.set(true);
-  }
-
-  protected closeMapPrompt(): void {
-    this.showMapPrompt.set(false);
-  }
-
-  protected openAccusePrompt(): void {
-    this.showAccusePrompt.set(true);
-  }
-
-  protected closeAccusePrompt(): void {
-    this.showAccusePrompt.set(false);
+    this.closeModal('direction');
   }
 
   protected viewMap(direction: 'left' | 'right'): void {
-    if(this.resting.state.scouting !== direction && !this.inventory.state.isDemon) {
-        console.log(`Cannot view ${direction} path, not scouted and not a demon`);
+    if (this.resting.state.scouting !== direction && !this.inventory.state.isDemon) {
       return;
     }
+
     this.event.requestPreview(direction);
-    this.showMapPrompt.set(false);
+    this.closeModal('map');
     this.router.navigateByUrl('/event');
   }
 
@@ -151,13 +114,13 @@ export class RestingPage {
     }
 
     this.resting.pickTargetedSkill(index, targetName);
-    this.showTargetPrompt.set(false);
+    this.closeModal('target');
     this.pendingTargetSkill.set(null);
   }
 
   protected selectAccuseTarget(targetName: string): void {
     this.resting.accuse(targetName);
-    this.showAccusePrompt.set(false);
+    this.closeModal('accuse');
   }
 
   protected voteAccuse(vote: boolean): void {
@@ -171,18 +134,17 @@ export class RestingPage {
     }
 
     this.resting.pickSkillWithOption(index, optionChoice);
-    this.showOptionPrompt.set(false);
+    this.closeModal('option');
     this.pendingOptionSkill.set(null);
   }
 
-  protected selectedLabel(): string {
-    return "blah";
-    /*const index = this.resting.state.selectedSkill;
-    if (index === null || index === undefined) {
-      return 'No skill selected yet.';
-    }
+  protected dismissBodyWarning(): void {
+    this.pendingBodyItemName.set(null);
+    this.closeModal('body');
+  }
 
-    const skill = this.resting.state.skills[index];
-    return skill ? skill.name : 'No skill selected yet.';*/
+  protected confirmBodyWarning(): void {
+    this.pendingBodyItemName.set(null);
+    this.openModal('direction');
   }
 }

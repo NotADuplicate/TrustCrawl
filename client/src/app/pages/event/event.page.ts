@@ -1,11 +1,11 @@
-import { NgFor, NgIf } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, signal } from '@angular/core';
+import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { EventService } from '../../services/event.service';
 
 @Component({
   selector: 'app-event-page',
-  imports: [NgIf, NgFor],
+  imports: [NgIf, NgFor, NgTemplateOutlet],
   templateUrl: './event.page.html',
   styleUrl: './event.page.scss'
 })
@@ -16,7 +16,7 @@ export class EventPage {
   protected readonly pendingOption = signal<number | null>(null);
   protected readonly quantityValue = signal(1);
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
+  constructor() {
     this.event.requestEvent();
   }
 
@@ -48,8 +48,7 @@ export class EventPage {
     const max = option?.max ?? 0;
     const clamped = Math.max(0, Math.min(max, Math.floor(this.quantityValue())));
     this.event.vote(index, clamped);
-    this.showQuantityPrompt.set(false);
-    this.pendingOption.set(null);
+    this.closeQuantityPrompt();
   }
 
   protected selectedLabel(): string {
@@ -82,6 +81,10 @@ export class EventPage {
 
   protected backToResting(): void {
     this.router.navigateByUrl('/resting');
+  }
+
+  protected quantityMax(): number {
+    return this.event.state.options[this.pendingOption() ?? 0]?.max || 0;
   }
 
 }

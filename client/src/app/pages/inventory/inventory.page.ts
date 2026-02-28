@@ -1,11 +1,11 @@
-import { NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { InventoryService } from '../../services/inventory.service';
 import { RestingService } from '../../services/resting.service';
 
 @Component({
   selector: 'app-inventory-page',
-  imports: [NgIf, NgFor],
+  imports: [NgIf, NgFor, NgTemplateOutlet],
   templateUrl: './inventory.page.html',
   styleUrl: './inventory.page.scss'
 })
@@ -21,8 +21,11 @@ export class InventoryPage {
   }
 
   protected onDragEnd(): void {
-    this.draggedItem.set(null);
-    this.draggedSource.set(null);
+    this.clearDraggedItem();
+  }
+
+  protected allowDrop(event: DragEvent): void {
+    event.preventDefault();
   }
 
   protected onDropToFloor(): void {
@@ -32,8 +35,7 @@ export class InventoryPage {
     }
 
     this.inventory.moveToFloor(itemName);
-    this.draggedItem.set(null);
-    this.draggedSource.set(null);
+    this.clearDraggedItem();
   }
 
   protected onDropToInventory(): void {
@@ -43,8 +45,7 @@ export class InventoryPage {
     }
 
     this.inventory.moveToInventory(itemName);
-    this.draggedItem.set(null);
-    this.draggedSource.set(null);
+    this.clearDraggedItem();
   }
 
   protected useItem(itemName: string): void {
@@ -62,5 +63,10 @@ export class InventoryPage {
 
   protected closeItemOptions(): void {
     this.inventory.clearItemOptions();
+  }
+
+  private clearDraggedItem(): void {
+    this.draggedItem.set(null);
+    this.draggedSource.set(null);
   }
 }

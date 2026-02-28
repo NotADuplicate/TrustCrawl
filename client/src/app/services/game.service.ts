@@ -170,7 +170,6 @@ export class GameService {
   }
 
   private openSocket(): void {
-    console.log("Attempting to connect WebSocket...");
     this.status.set('connecting');
 
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -180,7 +179,6 @@ export class GameService {
     this.socket = socket;
 
     socket.addEventListener('open', () => {
-        console.log('WebSocket connection established.');
       this.status.set('connected');
       this.reconnectAttempts = 0;
       socket.send(JSON.stringify({ type: 'join', name: this.name().trim() }));

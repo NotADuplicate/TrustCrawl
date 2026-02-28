@@ -12,8 +12,6 @@ export class SocketService {
   status: ConnectionStatus = 'disconnected';
 
   private socket?: WebSocket;
-  private reconnectTimer?: ReturnType<typeof setTimeout>;
-  private reconnectAttempts = 0;
   private manuallyDisconnected = false;
   private currentName = '';
   private readonly handlers: Array<(data: SocketMessage) => void> = [];
@@ -34,7 +32,6 @@ export class SocketService {
 
   disconnect(): void {
     this.manuallyDisconnected = true;
-    this.clearReconnectTimer();
     this.socket?.close();
     this.socket = undefined;
     this.status = 'disconnected';
@@ -68,7 +65,6 @@ export class SocketService {
     socket.addEventListener('open', () => {
       this.zone.run(() => {
         this.status = 'connected';
-        this.reconnectAttempts = 0;
         socket.send(JSON.stringify({ type: 'join', name: this.currentName }));
         this.notifyChange();
       });
@@ -90,6 +86,8 @@ export class SocketService {
 
     socket.addEventListener('close', () => {
       this.zone.run(() => {
+        this.socket = undefined;
+
         if (this.manuallyDisconnected) {
           this.status = 'disconnected';
           this.notifyChange();
@@ -97,7 +95,6 @@ export class SocketService {
         }
 
         this.status = 'disconnected';
-        this.scheduleReconnect();
         this.notifyChange();
       });
     });
@@ -108,29 +105,6 @@ export class SocketService {
         this.notifyChange();
       });
     });
-  }
-
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer || !this.currentName.trim()) {
-      return;
-    }
-
-    const delay = Math.min(10000, 1000 * Math.max(1, this.reconnectAttempts + 1));
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = undefined;
-      if (this.manuallyDisconnected) {
-        return;
-      }
-      this.reconnectAttempts += 1;
-      this.openSocket();
-    }, delay);
-  }
-
-  private clearReconnectTimer(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = undefined;
-    }
   }
 
   private notifyChange(): void {

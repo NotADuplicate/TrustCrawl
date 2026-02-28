@@ -89,7 +89,6 @@ export class App {
   }
 
   protected closeItemOptions(): void {
-    console.log('Closing item options.');
     this.inventory.clearItemOptions();
   }
 

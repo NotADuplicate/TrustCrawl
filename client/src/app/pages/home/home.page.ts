@@ -19,4 +19,8 @@ export class HomePage {
       this.router.navigateByUrl('/resting');
     });
   }
+
+  protected showReconnectHint(): boolean {
+    return !this.inventory.connected && this.inventory.state.name.trim().length > 0;
+  }
 }

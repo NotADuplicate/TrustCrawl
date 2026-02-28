@@ -251,10 +251,17 @@ export class RestHandler {
             this.getSkillsForPlayer(player.name);
             this.eatenStatus.set(player.name, false);
         }
+
+        this.game.currentEvent = null;
         this.game.level++;
-        this.onRestStarted?.();
         this.broadcastRest();
         this.game.broadcastGame();
+
+        try {
+            this.onRestStarted?.();
+        } catch (error) {
+            console.error('Failed to prepare rest previews.', error);
+        }
     }
 
     sendRestTo(socket: WebSocket): void {

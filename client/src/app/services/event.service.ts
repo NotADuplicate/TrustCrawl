@@ -78,20 +78,12 @@ export class EventService extends Service {
       }
 
       if (data.type === 'event-preview') {
-        this.state.preview = true;
+        this.applyBaseState(data, true);
         this.state.active = false;
-        this.state.title = String(data['title'] ?? '');
-        this.state.description = String(data['description'] ?? '');
-        this.state.options = Array.isArray(data['options']) ? (data['options'] as EventOption[]) : [];
-        this.state.mode = (data['mode'] as EventMode) ?? 'group';
         this.state.status = 'preview';
         this.state.secondsLeft = 0;
-        this.state.endedMessage = null;
-        this.state.endedColor = null;
-        this.state.endedDemonText = null;
-        this.state.resultMessage = null;
-        this.state.resultColor = null;
-        this.state.resultDemonText = null;
+        this.clearEndedState();
+        this.clearResultState();
         this.refresh();
         return;
       }
@@ -106,13 +98,9 @@ export class EventService extends Service {
         this.state.sequence += 1;
       }
       this.state.active = true;
-      this.state.preview = false;
-      this.state.title = String(data['title'] ?? '');
-      this.state.description = String(data['description'] ?? '');
-      this.state.options = Array.isArray(data['options']) ? (data['options'] as EventOption[]) : [];
+      this.applyBaseState(data, false);
       this.state.status = nextStatus;
       this.lastStatus = nextStatus;
-      this.state.mode = (data['mode'] as EventMode) ?? 'group';
       this.state.results = Array.isArray(data['results'])
         ? (data['results'] as Array<{ optionIndex: number; votes: number }>)
         : [];
@@ -121,19 +109,17 @@ export class EventService extends Service {
       const result = data['result'] as
         | { text?: string; color?: 'success' | 'danger' | 'warning' | 'info'; demonText?: string }
         | undefined;
-      this.state.resultMessage = result?.text ?? null;
-      this.state.resultColor = result?.color ?? null;
-      this.state.resultDemonText = result?.demonText ?? null;
+      if (result) {
+        this.state.resultMessage = result.text ?? null;
+        this.state.resultColor = result.color ?? null;
+        this.state.resultDemonText = result.demonText ?? null;
+      } else if (nextStatus !== 'revealed' || this.state.mode !== 'individual') {
+        this.clearResultState();
+      }
 
       if (this.state.status === 'voting') {
         this.state.votedOption = null;
-        this.state.endedMessage = null;
-        this.state.endedColor = null;
-        this.state.endedDemonText = null;
-        this.state.endedContinue = false;
-        this.state.resultMessage = null;
-        this.state.resultColor = null;
-        this.state.resultDemonText = null;
+        this.clearEndedState();
         this.state.preview = false;
       }
 
@@ -208,15 +194,31 @@ export class EventService extends Service {
     this.state.votedOption = null;
     this.state.active = false;
     this.state.sequence = 0;
+    this.clearEndedState();
+    this.clearResultState();
+    this.state.preview = false;
+    this.stopCountdown();
+  }
+
+  private applyBaseState(data: { [key: string]: unknown }, preview: boolean): void {
+    this.state.preview = preview;
+    this.state.title = String(data['title'] ?? '');
+    this.state.description = String(data['description'] ?? '');
+    this.state.options = Array.isArray(data['options']) ? (data['options'] as EventOption[]) : [];
+    this.state.mode = (data['mode'] as EventMode) ?? 'group';
+  }
+
+  private clearEndedState(): void {
     this.state.endedMessage = null;
     this.state.endedColor = null;
     this.state.endedDemonText = null;
     this.state.endedContinue = false;
+  }
+
+  private clearResultState(): void {
     this.state.resultMessage = null;
     this.state.resultColor = null;
     this.state.resultDemonText = null;
-    this.state.preview = false;
-    this.stopCountdown();
   }
 
   private startCountdown(secondsLeft: number, status: 'voting' | 'revealed'): void {
@@ -229,7 +231,6 @@ export class EventService extends Service {
     }
 
     this.countdownTimer = setInterval(() => {
-        console.log('Countdown tick', this.state.secondsLeft);
       const next = this.state.secondsLeft - 0.5;
       if (next <= 0) {
         this.state.secondsLeft = 0;
@@ -242,7 +243,6 @@ export class EventService extends Service {
   }
 
   private stopCountdown(): void {
-    console.log('Stopping countdown');
     if (this.countdownTimer) {
       clearInterval(this.countdownTimer);
       this.countdownTimer = undefined;

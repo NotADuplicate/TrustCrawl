@@ -101,6 +101,16 @@ button.ghost {
 	font-weight: 500;
 }
 
+.reconnect-hint {
+	margin: 0.75rem 0 0;
+	padding: 0.75rem 0.9rem;
+	border-radius: 12px;
+	background: rgba(59, 130, 246, 0.12);
+	border: 1px solid rgba(96, 165, 250, 0.25);
+	color: #bfdbfe;
+	font-size: 0.95rem;
+}
+
 .dot {
 	width: 10px;
 	height: 10px;

@@ -57,10 +57,7 @@ export class RestingService {
       }
 
       if (data.type === 'accuse:result') {
-        this.state.accuseActive = false;
-        this.state.accuseAccuser = null;
-        this.state.accuseAccused = null;
-        this.state.accuseVoted = false;
+        this.resetAccusation();
         return;
       }
 
@@ -69,17 +66,7 @@ export class RestingService {
       }
 
       this.state.sequence += 1;
-
-      this.state.title = String(data['title'] ?? 'Resting');
-      this.state.skills = Array.isArray(data['skills']) ? (data['skills'] as Skill[]) : [];
-      this.state.selectedSkills = Array.isArray(data['selectedSkills']) ? (data['selectedSkills'] as number[]) : [];
-      this.state.skillText = (data['skillText'] as string | null) ?? null;
-      this.state.haveEaten = Boolean(data['haveEaten']);
-      this.state.continued = false;
-      this.state.carryingCapacity = Number(data['hauling'] ? 12 : 6);
-      this.state.scouting = (data['scouting'] as 'left' | 'right' | 'neither') ?? 'neither';
-      this.state.directionVote = null;
-
+      this.applyRestState(data);
 
       for (const listener of this.listeners) {
         listener();
@@ -92,7 +79,7 @@ export class RestingService {
   }
 
   requestResting(): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSend()) {
       return;
     }
 
@@ -100,25 +87,16 @@ export class RestingService {
   }
 
   pickSkill(index: number): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSelectSkill(index)) {
       return;
     }
 
-    if (index < 0 || index >= this.state.skills.length) {
-      return;
-    }
-
-    this.state.selectedSkills.push(index);
+    this.markSkillSelected(index);
     this.socket.send({ type: 'rest:pick', optionIndex: index });
   }
 
   pickSkillWithOption(index: number, optionChoice: string): void {
-    console.log(`Picking skill ${index} with option "${optionChoice}"`);
-    if (this.socket.status !== 'connected') {
-      return;
-    }
-
-    if (index < 0 || index >= this.state.skills.length) {
+    if (!this.canSelectSkill(index)) {
       return;
     }
 
@@ -127,16 +105,12 @@ export class RestingService {
       return;
     }
 
-    this.state.selectedSkills.push(index);
+    this.markSkillSelected(index);
     this.socket.send({ type: 'rest:pick', optionIndex: index, optionChoice: choice });
   }
 
   pickTargetedSkill(index: number, targetName: string): void {
-    if (this.socket.status !== 'connected') {
-      return;
-    }
-
-    if (index < 0 || index >= this.state.skills.length) {
+    if (!this.canSelectSkill(index)) {
       return;
     }
 
@@ -145,12 +119,12 @@ export class RestingService {
       return;
     }
 
-    this.state.selectedSkills.push(index);
+    this.markSkillSelected(index);
     this.socket.send({ type: 'rest:pick', optionIndex: index, targetName: trimmedTarget });
   }
 
   eatFood(amount: number): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSend()) {
       return;
     }
 
@@ -160,7 +134,7 @@ export class RestingService {
   }
 
   continue(direction: 'left' | 'right'): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSend()) {
       return;
     }
 
@@ -174,7 +148,7 @@ export class RestingService {
   }
 
   accuse(targetName: string): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSend()) {
       return;
     }
 
@@ -187,7 +161,7 @@ export class RestingService {
   }
 
   voteAccuse(vote: boolean): void {
-    if (this.socket.status !== 'connected') {
+    if (!this.canSend()) {
       return;
     }
 
@@ -207,7 +181,37 @@ export class RestingService {
     this.state.haveEaten = false;
     this.state.sequence = 0;
     this.state.continued = false;
+    this.state.carryingCapacity = 6;
+    this.state.scouting = 'neither';
     this.state.directionVote = null;
+    this.resetAccusation();
+  }
+
+  private canSend(): boolean {
+    return this.socket.status === 'connected';
+  }
+
+  private canSelectSkill(index: number): boolean {
+    return this.canSend() && index >= 0 && index < this.state.skills.length;
+  }
+
+  private markSkillSelected(index: number): void {
+    this.state.selectedSkills.push(index);
+  }
+
+  private applyRestState(data: { [key: string]: unknown }): void {
+    this.state.title = String(data['title'] ?? 'Resting');
+    this.state.skills = Array.isArray(data['skills']) ? (data['skills'] as Skill[]) : [];
+    this.state.selectedSkills = Array.isArray(data['selectedSkills']) ? (data['selectedSkills'] as number[]) : [];
+    this.state.skillText = (data['skillText'] as string | null) ?? null;
+    this.state.haveEaten = Boolean(data['haveEaten']);
+    this.state.continued = false;
+    this.state.carryingCapacity = Number(data['hauling'] ? 12 : 6);
+    this.state.scouting = (data['scouting'] as 'left' | 'right' | 'neither') ?? 'neither';
+    this.state.directionVote = null;
+  }
+
+  private resetAccusation(): void {
     this.state.accuseActive = false;
     this.state.accuseAccuser = null;
     this.state.accuseAccused = null;

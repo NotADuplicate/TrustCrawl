@@ -9,7 +9,7 @@
         <button
           type="button"
           class="ghost"
-          (click)="openAccusePrompt()"
+          (click)="openModal('accuse')"
           *ngIf="inventory.myHealth < 1"
         >
           Accuse
@@ -27,11 +27,11 @@
           type="button"
           class="ghost"
           *ngIf="inventory.state.isDemon || resting.state.scouting !== 'neither'"
-          (click)="openMapPrompt()"
+          (click)="openModal('map')"
         >
           Map
         </button>
-        <button *ngIf="!resting.state.haveEaten" type="button" class="ghost" (click)="openEatPrompt()">Eat</button>
+        <button *ngIf="!resting.state.haveEaten" type="button" class="ghost" (click)="openModal('eat')">Eat</button>
       </div>
     </header>
 
@@ -61,118 +61,184 @@
   </section>
 </main>
 
-<div class="modal" *ngIf="showEatPrompt()">
-  <div class="modal-card">
-    <h2>Eat food?</h2>
-    <p>How many food rations do you want to eat?</p>
-    <div class="modal-actions">
-      <button type="button" (click)="eat(0)">0</button>
-      <button type="button" (click)="eat(1)" [disabled]="inventory.myFoodCount < 1">1</button>
-      <button type="button" (click)="eat(2)" [disabled]="inventory.myFoodCount < 2">2</button>
-    </div>
-    <button type="button" class="ghost" (click)="closeEatPrompt()">Cancel</button>
-  </div>
-</div>
-
-<div class="modal" *ngIf="showWeightWarning()">
-  <div class="modal-card">
-    <h2>Too much weight</h2>
-    <p>You are carrying {{ inventory.myInventoryWeight }} weight. Drop items to get to {{ resting.state.carryingCapacity }} or less before continuing.</p>
-    <button type="button" class="ghost" (click)="closeWeightWarning()">Got it</button>
-  </div>
-</div>
-
-<div class="modal" *ngIf="showBodyWarning()">
-  <div class="modal-card">
-    <h2>Leave them behind?</h2>
-    <p>{{ pendingBodyItemName() }} is left, if you continue without them they will die.</p>
-    <div class="modal-actions">
-      <button type="button" (click)="confirmBodyWarning()">Confirm</button>
-      <button type="button" class="ghost" (click)="closeBodyWarning()">Cancel</button>
+<ng-template #modalShell let-title="title" let-description="description" let-content="content">
+  <div class="modal">
+    <div class="modal-card">
+      <h2>{{ title }}</h2>
+      <p>{{ description }}</p>
+      <ng-container [ngTemplateOutlet]="content"></ng-container>
     </div>
   </div>
-</div>
+</ng-template>
 
-<div class="modal" *ngIf="showTargetPrompt()">
-  <div class="modal-card">
-    <h2>Choose a target</h2>
-    <p>Select a player to use this skill on.</p>
-    <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noTargets">
-      <button
-        type="button"
-        *ngFor="let player of inventory.otherPlayersHealth"
-        (click)="selectTarget(player.name)"
-      >
-        {{ player.name }} (HP {{ player.health }})
-      </button>
-    </div>
-    <ng-template #noTargets>
-      <p class="empty">No other players available.</p>
-    </ng-template>
-    <button type="button" class="ghost" (click)="closeTargetPrompt()">Cancel</button>
-  </div>
-</div>
+<ng-container *ngIf="isModalOpen('eat')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Eat food?',
+      description: 'How many food rations do you want to eat?',
+      content: eatPromptContent
+    }"
+  ></ng-container>
+</ng-container>
 
-<div class="modal" *ngIf="showDirectionPrompt()">
-  <div class="modal-card">
-    <h2>Choose a direction</h2>
-    <p>Do you want to go left or right?</p>
-    <div class="modal-actions">
-      <button type="button" (click)="selectDirection('left')">Left</button>
-      <button type="button" (click)="selectDirection('right')">Right</button>
-    </div>
-    <button type="button" class="ghost" (click)="closeDirectionPrompt()">Cancel</button>
+<ng-template #eatPromptContent>
+  <div class="modal-actions">
+    <button type="button" (click)="eat(0)">0</button>
+    <button type="button" (click)="eat(1)" [disabled]="inventory.myFoodCount < 1">1</button>
+    <button type="button" (click)="eat(2)" [disabled]="inventory.myFoodCount < 2">2</button>
   </div>
-</div>
+  <button type="button" class="ghost" (click)="closeModal('eat')">Cancel</button>
+</ng-template>
 
-<div class="modal" *ngIf="showMapPrompt()">
-  <div class="modal-card">
-    <h2>Scout ahead</h2>
-    <p>View the left or right path.</p>
-    <div class="modal-actions">
-      <button [disabled]="resting.state.scouting !== 'left' && !inventory.state.isDemon" type="button" (click)="viewMap('left')">Left</button>
-      <button [disabled]="resting.state.scouting !== 'right' && !inventory.state.isDemon" type="button" (click)="viewMap('right')">Right</button>
-    </div>
-    <button type="button" class="ghost" (click)="closeMapPrompt()">Cancel</button>
-  </div>
-</div>
+<ng-container *ngIf="isModalOpen('weight')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Too much weight',
+      description: 'You are carrying ' + inventory.myInventoryWeight + ' weight. Drop items to get to ' + resting.state.carryingCapacity + ' or less before continuing.',
+      content: weightWarningContent
+    }"
+  ></ng-container>
+</ng-container>
 
-<div class="modal" *ngIf="showOptionPrompt()">
-  <div class="modal-card">
-    <h2>Choose an option</h2>
-    <p>Select how you want to use this skill.</p>
-    <div class="modal-actions">
-      <button
-        type="button"
-        *ngFor="let option of (resting.state.skills[pendingOptionSkill() ?? 0]?.options || [])"
-        (click)="selectOption(option)"
-      >
-        {{ option }}
-      </button>
-    </div>
-    <button type="button" class="ghost" (click)="closeOptionPrompt()">Cancel</button>
-  </div>
-</div>
+<ng-template #weightWarningContent>
+  <button type="button" class="ghost" (click)="closeModal('weight')">Got it</button>
+</ng-template>
 
-<div class="modal" *ngIf="showAccusePrompt()">
-  <div class="modal-card">
-    <h2>Accuse a player</h2>
-    <p>Pick someone to accuse.</p>
-    <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noAccuseTargets">
-      <button
-        type="button"
-        *ngFor="let player of inventory.otherPlayersHealth"
-        (click)="selectAccuseTarget(player.name)"
-      >
-        {{ player.name }} (HP {{ player.health }})
-      </button>
-    </div>
-    <ng-template #noAccuseTargets>
-      <p class="empty">No other players available.</p>
-    </ng-template>
-    <button type="button" class="ghost" (click)="closeAccusePrompt()">Cancel</button>
+<ng-container *ngIf="isModalOpen('body')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Leave them behind?',
+      description: (pendingBodyItemName() || 'A player') + ' is left, if you continue without them they will die.',
+      content: bodyWarningContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #bodyWarningContent>
+  <div class="modal-actions">
+    <button type="button" (click)="confirmBodyWarning()">Confirm</button>
+    <button type="button" class="ghost" (click)="dismissBodyWarning()">Cancel</button>
   </div>
-</div>
+</ng-template>
+
+<ng-container *ngIf="isModalOpen('target')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Choose a target',
+      description: 'Select a player to use this skill on.',
+      content: targetPromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #targetPromptContent>
+  <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noTargets">
+    <button
+      type="button"
+      *ngFor="let player of inventory.otherPlayersHealth"
+      (click)="selectTarget(player.name)"
+    >
+      {{ player.name }} (HP {{ player.health }})
+    </button>
+  </div>
+  <ng-template #noTargets>
+    <p class="empty">No other players available.</p>
+  </ng-template>
+  <button type="button" class="ghost" (click)="closeModal('target')">Cancel</button>
+</ng-template>
+
+<ng-container *ngIf="isModalOpen('direction')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Choose a direction',
+      description: 'Do you want to go left or right?',
+      content: directionPromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #directionPromptContent>
+  <div class="modal-actions">
+    <button type="button" (click)="selectDirection('left')">Left</button>
+    <button type="button" (click)="selectDirection('right')">Right</button>
+  </div>
+  <button type="button" class="ghost" (click)="closeModal('direction')">Cancel</button>
+</ng-template>
+
+<ng-container *ngIf="isModalOpen('map')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Scout ahead',
+      description: 'View the left or right path.',
+      content: mapPromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #mapPromptContent>
+  <div class="modal-actions">
+    <button [disabled]="resting.state.scouting !== 'left' && !inventory.state.isDemon" type="button" (click)="viewMap('left')">Left</button>
+    <button [disabled]="resting.state.scouting !== 'right' && !inventory.state.isDemon" type="button" (click)="viewMap('right')">Right</button>
+  </div>
+  <button type="button" class="ghost" (click)="closeModal('map')">Cancel</button>
+</ng-template>
+
+<ng-container *ngIf="isModalOpen('option')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Choose an option',
+      description: 'Select how you want to use this skill.',
+      content: optionPromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #optionPromptContent>
+  <div class="modal-actions">
+    <button
+      type="button"
+      *ngFor="let option of (resting.state.skills[pendingOptionSkill() ?? 0]?.options || [])"
+      (click)="selectOption(option)"
+    >
+      {{ option }}
+    </button>
+  </div>
+  <button type="button" class="ghost" (click)="closeModal('option')">Cancel</button>
+</ng-template>
+
+<ng-container *ngIf="isModalOpen('accuse')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Accuse a player',
+      description: 'Pick someone to accuse.',
+      content: accusePromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #accusePromptContent>
+  <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noAccuseTargets">
+    <button
+      type="button"
+      *ngFor="let player of inventory.otherPlayersHealth"
+      (click)="selectAccuseTarget(player.name)"
+    >
+      {{ player.name }} (HP {{ player.health }})
+    </button>
+  </div>
+  <ng-template #noAccuseTargets>
+    <p class="empty">No other players available.</p>
+  </ng-template>
+  <button type="button" class="ghost" (click)="closeModal('accuse')">Cancel</button>
+</ng-template>
 
 <div class="modal" *ngIf="resting.state.accuseActive">
   <div class="modal-card">

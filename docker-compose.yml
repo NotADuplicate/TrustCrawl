@@ -6,7 +6,7 @@ services:
     container_name: trust-crawl
     restart: unless-stopped
     ports:
-      - "6970:6970"
+      - "6970:4000"
     environment:
-      PORT: "6970"
+      PORT: "4000"
       SOCKET_GRACE_MS: "60000"

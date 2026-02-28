@@ -18,6 +18,6 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
 
-EXPOSE 6970
-ENV PORT=6970
+EXPOSE 4000
+ENV PORT=4000
 CMD ["node", "dist/trust-crawl/server/server.mjs"]

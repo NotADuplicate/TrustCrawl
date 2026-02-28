@@ -6,19 +6,8 @@
         <p class="description" *ngIf="event.state.description">
           {{ event.state.description }}
         </p>
-        <!-- <p *ngIf="event.state.mode === 'group'">
-          Pick one option before the timer runs out. Group results will be revealed.
-        </p>
-        <p *ngIf="event.state.mode === 'individual'">
-          Pick one option before the timer runs out. Your choice resolves immediately.
-        </p> -->
       </div>
     </header>
-
-    <!-- <div class="timer" *ngIf="event.state.status === 'voting'">
-      <span>Time left</span>
-      <strong>{{ event.state.secondsLeft }}s</strong>
-    </div> -->
 
     <div class="options" *ngIf="event.state.options.length > 0; else loading">
       <button
@@ -57,20 +46,27 @@
         </div>
       </ng-container>
 
-      <div
-        *ngIf="event.state.mode === 'individual' && event.state.resultMessage"
-        [class]="resultClass(event.state.resultColor)"
-      >
-        <p>{{ event.state.resultMessage }}</p>
-        <p class="demon-text" *ngIf="event.state.resultDemonText">{{ event.state.resultDemonText }}</p>
-      </div>
+      <ng-container *ngIf="event.state.mode === 'individual' && event.state.resultMessage">
+        <ng-container
+          [ngTemplateOutlet]="resultBanner"
+          [ngTemplateOutletContext]="{
+            color: event.state.resultColor,
+            message: event.state.resultMessage,
+            demonText: event.state.resultDemonText
+          }"
+        ></ng-container>
+      </ng-container>
     </div>
 
     <div class="selection" *ngIf="event.state.endedMessage">
-      <div [class]="resultClass(event.state.endedColor)">
-        <p>{{ event.state.endedMessage }}</p>
-        <p class="demon-text" *ngIf="event.state.endedDemonText">{{ event.state.endedDemonText }}</p>
-      </div>
+      <ng-container
+        [ngTemplateOutlet]="resultBanner"
+        [ngTemplateOutletContext]="{
+          color: event.state.endedColor,
+          message: event.state.endedMessage,
+          demonText: event.state.endedDemonText
+        }"
+      ></ng-container>
       <button
         type="button"
         class="ghost"
@@ -87,25 +83,46 @@
   </section>
 </main>
 
-    <div class="modal" *ngIf="showQuantityPrompt()">
-      <div class="modal-card">
-        <h2>Choose quantity</h2>
-        <p>Set a quantity up to the max allowed.</p>
-        <div class="modal-actions">
-          <input
-            type="number"
-            [min]="0"
-            [max]="event.state.options[pendingOption() ?? 0]?.max || 0"
-            [value]="quantityValue()"
-            (input)="quantityValue.set($any($event.target).valueAsNumber)"
-          />
-          <button
-            type="button"
-            (click)="confirmQuantity()"
-          >
-            Confirm
-          </button>
-        </div>
-        <button type="button" class="ghost" (click)="closeQuantityPrompt()">Cancel</button>
-      </div>
+<ng-template #resultBanner let-color="color" let-message="message" let-demonText="demonText">
+  <div [class]="resultClass(color)">
+    <p>{{ message }}</p>
+    <p class="demon-text" *ngIf="demonText">{{ demonText }}</p>
+  </div>
+</ng-template>
+
+<ng-template #modalShell let-title="title" let-description="description" let-content="content">
+  <div class="modal">
+    <div class="modal-card">
+      <h2>{{ title }}</h2>
+      <p>{{ description }}</p>
+      <ng-container [ngTemplateOutlet]="content"></ng-container>
     </div>
+  </div>
+</ng-template>
+
+<ng-container *ngIf="showQuantityPrompt()">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Choose quantity',
+      description: 'Set a quantity up to the max allowed.',
+      content: quantityPromptContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #quantityPromptContent>
+  <div class="modal-actions">
+    <input
+      type="number"
+      [min]="0"
+      [max]="quantityMax()"
+      [value]="quantityValue()"
+      (input)="quantityValue.set($any($event.target).valueAsNumber)"
+    />
+    <button type="button" (click)="confirmQuantity()">
+      Confirm
+    </button>
+  </div>
+  <button type="button" class="ghost" (click)="closeQuantityPrompt()">Cancel</button>
+</ng-template>

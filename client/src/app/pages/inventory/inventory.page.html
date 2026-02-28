@@ -10,7 +10,7 @@
     <div class="game-grid" *ngIf="inventory.state.gameStarted; else waiting">
       <section
         class="panel"
-        (dragover)="$event.preventDefault()"
+        (dragover)="allowDrop($event)"
         (drop)="onDropToInventory()"
       >
         <div class="panel-header">
@@ -18,26 +18,16 @@
           <span class="total-weight">Total weight: {{ inventory.myInventoryWeight }} / 6</span>
         </div>
         <div class="item-grid" *ngIf="inventory.myInventoryStacked.length > 0; else emptyInventory">
-          <article
-            class="item"
-            *ngFor="let item of inventory.myInventoryStacked"
-            draggable="true"
-            (dragstart)="onDragStart(item.name, 'inventory')"
-            (dragend)="onDragEnd()"
-          >
-            <span class="quantity" *ngIf="item.quantity > 1">x{{ item.quantity }}</span>
-            <h3>{{ item.name }}</h3>
-            <p>{{ item.description }}</p>
-            <span class="weight">Weight: {{ item.weight }}</span>
-            <button
-              type="button"
-              class="ghost"
-              *ngIf="item.usable"
-              (click)="useItem(item.name)"
-            >
-              Use
-            </button>
-          </article>
+          <ng-container *ngFor="let item of inventory.myInventoryStacked">
+            <ng-container
+              [ngTemplateOutlet]="itemCard"
+              [ngTemplateOutletContext]="{
+                item,
+                source: 'inventory',
+                showUseButton: item.usable
+              }"
+            ></ng-container>
+          </ng-container>
         </div>
         <ng-template #emptyInventory>
           <p class="empty">No items in your inventory.</p>
@@ -46,23 +36,22 @@
 
       <section
         class="panel floor"
-        (dragover)="$event.preventDefault()"
+        (dragover)="allowDrop($event)"
         (drop)="onDropToFloor()"
       >
         <h2>Floor</h2>
         <p class="hint">Drop items here to share them with everyone.</p>
         <div class="item-grid" *ngIf="inventory.state.floorItems.length > 0; else emptyFloor">
-          <article
-            class="item"
-            *ngFor="let item of inventory.state.floorItems"
-            draggable="true"
-            (dragstart)="onDragStart(item.name, 'floor')"
-            (dragend)="onDragEnd()"
-          >
-            <h3>{{ item.name }}</h3>
-            <p>{{ item.description }}</p>
-            <span class="weight">Weight: {{ item.weight }}</span>
-          </article>
+          <ng-container *ngFor="let item of inventory.state.floorItems">
+            <ng-container
+              [ngTemplateOutlet]="itemCard"
+              [ngTemplateOutletContext]="{
+                item,
+                source: 'floor',
+                showUseButton: false
+              }"
+            ></ng-container>
+          </ng-container>
         </div>
         <ng-template #emptyFloor>
           <p class="empty">The floor is empty.</p>
@@ -78,3 +67,24 @@
   </section>
 </main>
 
+<ng-template #itemCard let-item="item" let-source="source" let-showUseButton="showUseButton">
+  <article
+    class="item"
+    draggable="true"
+    (dragstart)="onDragStart(item.name, source)"
+    (dragend)="onDragEnd()"
+  >
+    <span class="quantity" *ngIf="item.quantity && item.quantity > 1">x{{ item.quantity }}</span>
+    <h3>{{ item.name }}</h3>
+    <p>{{ item.description }}</p>
+    <span class="weight">Weight: {{ item.weight }}</span>
+    <button
+      type="button"
+      class="ghost"
+      *ngIf="showUseButton"
+      (click)="useItem(item.name)"
+    >
+      Use
+    </button>
+  </article>
+</ng-template>

@@ -130,12 +130,6 @@ export class EventHandler {
             const resolved = this.groupEventResolve();
             if (resolved.repeatable) {
                 this.votes.clear();
-                if (this.eventTimer) {
-                    clearTimeout(this.eventTimer);
-                    this.eventTimer = undefined;
-                }
-                this.eventStartedAt = Date.now();
-                this.ensureEventTimer();
                 this.broadcastEvent();
                 return false;
             }
@@ -191,15 +185,20 @@ export class EventHandler {
         if(this.game.level >= 12 && this.game.level % 2 === 0) {
             return this.bossEvent!;
         }
-        const candidates = this.EventPool.map((EventType) => {
-            const instance = new EventType(this.game.players);
-            if(instance.title === this.currentEvent.title || this.lastThreeEvents.some(e => e.title === instance.title)) {
-                return { instance, weight: 0 };
+        const candidates = this.EventPool.flatMap((EventType) => {
+            try {
+                const instance = new EventType(this.game.players);
+                if(instance.title === this.currentEvent.title || this.lastThreeEvents.some(e => e.title === instance.title)) {
+                    return [{ instance, weight: 0 }];
+                }
+                instance.game = this.game;
+                console.log(instance.title, 'likelihood:', instance.eventLikelihood(this.game));
+                const weight = Math.max(0, instance.eventLikelihood(this.game));
+                return [{ instance, weight }];
+            } catch (error) {
+                console.error(`Failed to create preview event ${EventType.name}.`, error);
+                return [];
             }
-            instance.game = this.game;
-            console.log(instance.title, 'likelihood:', instance.eventLikelihood(this.game));
-            const weight = Math.max(0, instance.eventLikelihood(this.game));
-            return { instance, weight };
         });
 
         const totalWeight = candidates.reduce((sum, entry) => sum + entry.weight, 0);
@@ -404,8 +403,6 @@ export class EventHandler {
                 if (resolved.repeatable) {
                     this.votes.clear();
                     this.eventTimer = undefined;
-                    this.eventStartedAt = Date.now();
-                    this.ensureEventTimer();
                     this.broadcastEvent();
                     return;
                 }

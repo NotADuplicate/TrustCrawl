@@ -38,6 +38,10 @@ export class Traps extends Event {
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
         console.log('Option selected:', optionNumber, 'Trapped option:', this.trappedOption);
+        if (optionNumber === 3) {
+            return { text: 'You leave the bags alone and move on.', color: 'info' };
+        }
+
         if(optionNumber === this.trappedOption) {
             for(const p of this.players) {
                 p.damage(1);
