@@ -13,7 +13,8 @@ type RestingModal =
   | 'map'
   | 'option'
   | 'accuse'
-  | 'body';
+  | 'body'
+  | 'ground';
 
 @Component({
   selector: 'app-resting-page',
@@ -89,7 +90,7 @@ export class RestingPage {
       return;
     }
 
-    this.openModal('direction');
+    this.openContinuePrompt();
   }
 
   protected selectDirection(direction: 'left' | 'right'): void {
@@ -145,6 +146,20 @@ export class RestingPage {
 
   protected confirmBodyWarning(): void {
     this.pendingBodyItemName.set(null);
+    this.openContinuePrompt();
+  }
+
+  protected confirmGroundWarning(): void {
+    this.closeModal('ground');
+    this.openModal('direction');
+  }
+
+  private openContinuePrompt(): void {
+    if (this.inventory.state.hasUnseenFloorItems) {
+      this.openModal('ground');
+      return;
+    }
+
     this.openModal('direction');
   }
 }

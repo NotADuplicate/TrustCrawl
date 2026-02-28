@@ -36,11 +36,18 @@ export class App {
         const nav = event as NavigationEnd;
         this.previousRoute.set(this.currentRoute());
         this.currentRoute.set(nav.urlAfterRedirects);
+        this.inventory.setInventoryRouteActive(nav.urlAfterRedirects === '/inventory');
       });
 
     this.event.onNewEvent(() => {
       if (this.currentRoute() !== '/event') {
         this.router.navigateByUrl('/event');
+      }
+    });
+
+    this.event.onGameWon(() => {
+      if (this.currentRoute() !== '/win') {
+        this.router.navigateByUrl('/win');
       }
     });
 
@@ -52,7 +59,7 @@ export class App {
   }
 
   protected showHud(): boolean {
-    return this.currentRoute() !== '/';
+    return this.currentRoute() !== '/' && this.currentRoute() !== '/win';
   }
 
   protected isInventoryRoute(): boolean {

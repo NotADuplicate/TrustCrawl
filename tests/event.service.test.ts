@@ -78,4 +78,53 @@ describe('EventService', () => {
     expect(service.state.endedMessage).toBe('The merchant disappears into the shadows...');
     expect(service.state.endedColor).toBe('info');
   });
+
+  it('keeps the latest repeatable individual result until a new result replaces it', () => {
+    const mock = createMockSocket();
+    const service = new EventService(mock.socket);
+
+    mock.emit({
+      type: 'event',
+      title: 'Merchant',
+      description: 'A merchant offers a deal.',
+      options: [{ description: 'Buy tea', repeatable: true }],
+      mode: 'individual',
+      status: 'voting',
+      secondsLeft: 30,
+      result: {
+        text: 'You buy 1 Tea(s) for 1 gold.',
+        color: 'success',
+      },
+    });
+
+    expect(service.state.resultMessage).toBe('You buy 1 Tea(s) for 1 gold.');
+
+    mock.emit({
+      type: 'event',
+      title: 'Merchant',
+      description: 'A merchant offers a deal.',
+      options: [{ description: 'Buy tea', repeatable: true }],
+      mode: 'individual',
+      status: 'voting',
+      secondsLeft: 25,
+    });
+
+    expect(service.state.resultMessage).toBe('You buy 1 Tea(s) for 1 gold.');
+
+    mock.emit({
+      type: 'event',
+      title: 'Merchant',
+      description: 'A merchant offers a deal.',
+      options: [{ description: 'Buy tea', repeatable: true }],
+      mode: 'individual',
+      status: 'voting',
+      secondsLeft: 20,
+      result: {
+        text: 'You buy another Tea.',
+        color: 'success',
+      },
+    });
+
+    expect(service.state.resultMessage).toBe('You buy another Tea.');
+  });
 });

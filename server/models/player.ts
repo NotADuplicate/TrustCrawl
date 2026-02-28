@@ -23,6 +23,19 @@ export class Player {
     }
 
     addItem(item: Item): void {
+        if (this.health < 0) {
+            this.game.floorItems.push(item);
+            return;
+        }
+
+        if (this.health === 0) {
+            const canCarryFood = item.name === 'Food' && this.inventory.filter((entry) => entry.name === 'Food').length < 2;
+            if (!canCarryFood) {
+                this.game.floorItems.push(item);
+                return;
+            }
+        }
+
         this.inventory.push(item);
     }
 
@@ -36,6 +49,10 @@ export class Player {
     }
 
     damage(amount: number, combat: boolean = true): void {
+        if (this.dead) {
+            return;
+        }
+
         if(amount > 1 && this.inventory.some(item => item.name === 'Armor')) {
             console.log('Armor reduces damage to 1.');
             amount = 1;
@@ -50,15 +67,14 @@ export class Player {
 
         this.health = this.health - amount;
         if(this.health < 0) {
-            this.game.floorItems.push(...this.inventory);
-            this.dead = true;
-            console.log(`${this.name} has died.`);
-        } else if(this.health === 0) {
+            this.kill();
+        } else if(this.health === 0 && !this.wounded) {
             console.log(`${this.name} is unconscious.`);
             this.wounded = true;
+            this.dead = false;
             this.game.floorItems.push(...this.inventory);
             this.inventory = [];
-            this.game.floorItems.push(new Body(this));
+            this.ensureBodyMarker();
         }
     }
 
@@ -78,5 +94,50 @@ export class Player {
         }
         console.log(`${this.name} heals ${amount} health.`);
         this.health = Math.min(this.health + amount, this.maxHealth);
+        if (this.health > 0) {
+            this.wounded = false;
+            this.removeBodyMarker();
+        }
+    }
+
+    kill(): void {
+        if (this.dead) {
+            return;
+        }
+
+        this.health = -1;
+        this.dead = true;
+        this.wounded = false;
+        this.removeBodyMarker();
+        this.game.floorItems.push(...this.inventory);
+        this.inventory = [];
+        console.log(`${this.name} has died.`);
+    }
+
+    bodyItemName(): string {
+        return `${this.name}'s Body`;
+    }
+
+    canInfluenceGame(): boolean {
+        return this.health >= 0;
+    }
+
+    private ensureBodyMarker(): void {
+        const bodyName = this.bodyItemName();
+        const hasBodyOnFloor = this.game.floorItems.some((item) => item.name === bodyName);
+        const hasBodyInInventory = this.game.players.some((player) =>
+            player.inventory.some((item) => item.name === bodyName),
+        );
+        if (!hasBodyOnFloor && !hasBodyInInventory) {
+            this.game.floorItems.push(new Body(this));
+        }
+    }
+
+    private removeBodyMarker(): void {
+        const bodyName = this.bodyItemName();
+        this.game.floorItems = this.game.floorItems.filter((item) => item.name !== bodyName);
+        for (const player of this.game.players) {
+            player.inventory = player.inventory.filter((item) => item.name !== bodyName);
+        }
     }
 }

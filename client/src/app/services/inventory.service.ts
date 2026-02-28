@@ -33,6 +33,7 @@ export type InventoryState = {
   itemOptionActive: boolean;
   itemOptionItemName: string | null;
   itemOptionChoices: string[];
+  hasUnseenFloorItems: boolean;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -50,11 +51,14 @@ export class InventoryService {
     itemOptionActive: false,
     itemOptionItemName: null,
     itemOptionChoices: [],
+    hasUnseenFloorItems: false,
   };
 
   private readonly storageKey = 'trust-crawl-name';
   private readonly demonDismissedKeyPrefix = 'trust-crawl-demon-dismissed';
   private demonModalDismissed = false;
+  private inventoryRouteActive = false;
+  private floorSignature = '';
   private readonly gameStartListeners: Array<() => void> = [];
 
   constructor(private readonly socket: SocketService) {
@@ -240,6 +244,13 @@ export class InventoryService {
     this.gameStartListeners.push(listener);
   }
 
+  setInventoryRouteActive(active: boolean): void {
+    this.inventoryRouteActive = active;
+    if (active) {
+      this.state.hasUnseenFloorItems = false;
+    }
+  }
+
   private getDemonDismissedKey(name: string): string {
     if (!name.trim()) {
       return '';
@@ -271,12 +282,20 @@ export class InventoryService {
   }
 
   private applyGameState(players: PlayerState[], floorItems: GameItem[], level: number, isDemon: boolean): void {
+    const nextFloorSignature = this.getItemSignature(floorItems);
+    const floorChanged = nextFloorSignature !== this.floorSignature;
     this.state.gameStarted = true;
     this.state.gamePlayers = players;
     this.state.floorItems = floorItems;
     this.state.level = level;
     this.state.isDemon = isDemon;
     this.state.showDemonModal = isDemon && !this.demonModalDismissed;
+    this.floorSignature = nextFloorSignature;
+    if (floorChanged) {
+      this.state.hasUnseenFloorItems = floorItems.length > 0 && !this.inventoryRouteActive;
+    } else if (this.inventoryRouteActive) {
+      this.state.hasUnseenFloorItems = false;
+    }
   }
 
   private resetItemOptions(): void {
@@ -294,9 +313,17 @@ export class InventoryService {
     this.state.level = 1;
     this.state.isDemon = false;
     this.state.showDemonModal = false;
+    this.state.hasUnseenFloorItems = false;
     this.resetItemOptions();
+    this.floorSignature = '';
     if (clearName) {
       this.state.name = '';
     }
+  }
+
+  private getItemSignature(items: GameItem[]): string {
+    return items
+      .map((item) => `${item.name}|${item.description}|${item.weight}|${item.usable ? '1' : '0'}`)
+      .join('||');
   }
 }

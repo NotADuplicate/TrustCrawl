@@ -2,6 +2,7 @@ import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { EventService } from '../../services/event.service';
+import { InventoryService } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-event-page',
@@ -11,8 +12,10 @@ import { EventService } from '../../services/event.service';
 })
 export class EventPage {
   protected readonly event = inject(EventService);
+  protected readonly inventory = inject(InventoryService);
   private readonly router = inject(Router);
   protected readonly showQuantityPrompt = signal(false);
+  protected readonly showContinueWarning = signal(false);
   protected readonly pendingOption = signal<number | null>(null);
   protected readonly quantityValue = signal(1);
 
@@ -76,11 +79,25 @@ export class EventPage {
   }
 
   protected continueAfterEvent(): void {
+    if (this.inventory.state.hasUnseenFloorItems) {
+      this.showContinueWarning.set(true);
+      return;
+    }
+
+    this.confirmContinueAfterEvent();
+  }
+
+  protected confirmContinueAfterEvent(): void {
+    this.showContinueWarning.set(false);
     this.event.continueAfterEvent();
   }
 
   protected backToResting(): void {
     this.router.navigateByUrl('/resting');
+  }
+
+  protected closeContinueWarning(): void {
+    this.showContinueWarning.set(false);
   }
 
   protected quantityMax(): number {

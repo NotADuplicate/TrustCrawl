@@ -109,6 +109,28 @@ describe('connection behavior', () => {
     });
   });
 
+  it('marks new floor items as unseen until the inventory route is opened', () => {
+    const mockSocket = createMockSocketDependency();
+    const service = new InventoryService(mockSocket.instance as never);
+
+    mockSocket.instance.status = 'connected';
+    service.state.name = 'Alice';
+
+    mockSocket.emit({
+      type: 'game',
+      players: [{ name: 'Alice', health: 3, stamina: 3, inventory: [] }],
+      floor: [{ name: 'Treasure', description: 'A treasure', weight: 1, usable: false }],
+      level: 2,
+      isDemon: false,
+    });
+
+    expect(service.state.hasUnseenFloorItems).toBe(true);
+
+    service.setInventoryRouteActive(true);
+
+    expect(service.state.hasUnseenFloorItems).toBe(false);
+  });
+
   it('does not automatically reconnect after an unexpected socket close', () => {
     FakeWebSocket.reset();
 

@@ -56,6 +56,7 @@ export class EventHandler {
         this.eventStartedAt = Date.now();
         this.previewLeft = undefined;
         this.previewRight = undefined;
+        this.bossEvent = null;
         if (this.eventTimer) {
             clearTimeout(this.eventTimer);
             this.eventTimer = undefined;
@@ -65,7 +66,6 @@ export class EventHandler {
     resetAll(): void {
         this.resetForNewGame();
         this.currentEvent = new Rubble(this.game.players);
-        this.bossEvent = new Boss(this.game.players);
     }
 
     handleDisconnect(player: Player): void {
@@ -77,19 +77,24 @@ export class EventHandler {
     }
 
     handleEventEndContinue(player: Player): void {
-        if (!this.eventFinished || !this.game.gamePlayers) {
+        if (!this.eventFinished || !this.game.gamePlayers || player.health < 1) {
             return;
         }
 
         this.endContinues.add(player.name);
         if (this.endContinues.size >= this.game.players.filter(p => p.health>0).length) {
             this.endContinues.clear();
+            if (this.isBossVictory()) {
+                this.game.currentEvent = null;
+                this.broadcastGameWon();
+                return;
+            }
             this.onEventFinished?.();
         }
     }
 
     handleVote(socket: WebSocket, player: Player, optionIndex: number, quantity?: number): boolean {
-        if (!this.eventActive) {
+        if (!this.eventActive || player.health < 0) {
             return false;
         }
 
@@ -98,6 +103,10 @@ export class EventHandler {
         }
 
         if (optionIndex < 0 || optionIndex >= this.currentEvent.options.length) {
+            return false;
+        }
+
+        if (!this.currentEvent.isOptionAvailable(optionIndex, player)) {
             return false;
         }
 
@@ -112,7 +121,7 @@ export class EventHandler {
             const result = this.currentEvent.optionSelected(optionIndex, player, quantity);
             if (option?.repeatable) {
                 this.votes.delete(player.name);
-                this.sendEventTo(socket);
+                this.sendEventTo(socket, result);
                 return false;
             }
 
@@ -152,6 +161,7 @@ export class EventHandler {
         console.log(`Starting event in direction`);
         this.currentEvent = direction === 'left' ? this.previewLeft! : this.previewRight!; 
         this.game.currentEvent = this.currentEvent;
+        this.game.broadcastGame();
         this.eventActive = true;
         this.eventFinished = false;
         this.votes.clear();
@@ -183,6 +193,10 @@ export class EventHandler {
 
     pickEvent(): Event {
         if(this.game.level >= 12 && this.game.level % 2 === 0) {
+            if (!this.bossEvent) {
+                this.bossEvent = new Boss(this.game.players);
+                this.bossEvent.game = this.game;
+            }
             return this.bossEvent!;
         }
         const candidates = this.EventPool.flatMap((EventType) => {
@@ -273,7 +287,7 @@ export class EventHandler {
             description: this.currentEvent.description,
             options: this.currentEvent.options.map((option, index) => ({
                 description: option.description,
-                available: player ? this.currentEvent.isOptionAvailable(index, player) : true,
+                available: player ? player.health >= 0 && this.currentEvent.isOptionAvailable(index, player) : true,
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? this.currentEvent.optionQuantityMax(index, player) : undefined,
                 repeatable: option.repeatable ?? false,
@@ -285,7 +299,10 @@ export class EventHandler {
         };
 
         if (status === 'voting') {
-            return JSON.stringify(base);
+            return JSON.stringify({
+                ...base,
+                ...(result ? { result } : {}),
+            });
         } 
 
         if (this.currentEvent.mode === 'individual') {
@@ -330,7 +347,7 @@ export class EventHandler {
             description: event.description,
             options: event.options.map((option, index) => ({
                 description: option.description,
-                available: player ? event.isOptionAvailable(index, player) : true,
+                available: player ? player.health >= 0 && event.isOptionAvailable(index, player) : true,
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? event.optionQuantityMax(index, player) : undefined,
                 ...(isDemon && option.demonText ? { demonText: option.demonText } : {}),
@@ -378,6 +395,10 @@ export class EventHandler {
         this.eventActive = false;
     }
 
+    private isBossVictory(): boolean {
+        return this.currentEvent instanceof Boss && this.currentEvent.health <= 0;
+    }
+
     private broadcastEventEnded(result: EventResult): void {
         for (const client of this.game.clients.keys()) {
             if (client.readyState === client.OPEN) {
@@ -386,6 +407,17 @@ export class EventHandler {
                     message: result.text,
                     color: result.color,
                     demonText: result.demonText,
+                }));
+            }
+        }
+    }
+
+    private broadcastGameWon(): void {
+        for (const client of this.game.clients.keys()) {
+            if (client.readyState === client.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'game-won',
+                    message: 'You defeated the boss monster and escaped the crawl!',
                 }));
             }
         }

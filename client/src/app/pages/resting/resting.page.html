@@ -170,6 +170,24 @@
   <button type="button" class="ghost" (click)="closeModal('direction')">Cancel</button>
 </ng-template>
 
+<ng-container *ngIf="isModalOpen('ground')">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Unseen floor items',
+      description: 'There are items on the ground that you have not checked in the inventory yet. Continue anyway?',
+      content: groundWarningContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #groundWarningContent>
+  <div class="modal-actions">
+    <button type="button" (click)="confirmGroundWarning()">Continue</button>
+    <button type="button" class="ghost" (click)="closeModal('ground')">Cancel</button>
+  </div>
+</ng-template>
+
 <ng-container *ngIf="isModalOpen('map')">
   <ng-container
     [ngTemplateOutlet]="modalShell"

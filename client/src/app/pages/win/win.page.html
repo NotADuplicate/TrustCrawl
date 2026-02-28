@@ -1,0 +1,10 @@
+<main class="page">
+  <section class="card">
+    <p class="eyebrow">Victory</p>
+    <h1>You Escaped</h1>
+    <p class="message">
+      {{ event.state.winMessage || 'You defeated the boss monster and escaped the crawl!' }}
+    </p>
+    <button type="button" (click)="returnHome()">Return Home</button>
+  </section>
+</main>

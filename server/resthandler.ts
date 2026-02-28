@@ -78,7 +78,7 @@ export class RestHandler {
     }
 
     handleAccuse(player: Player, targetName: string): void {
-        if (!this.restActive) {
+        if (!this.restActive || player.health < 0) {
             return;
         }
 
@@ -98,7 +98,7 @@ export class RestHandler {
     }
 
     handleAccuseVote(player: Player, vote: boolean): void {
-        if (!this.currentAccuse) {
+        if (!this.currentAccuse || player.health < 0) {
             return;
         }
 
@@ -113,7 +113,7 @@ export class RestHandler {
         if (yesVotes > noVotes) {
             const target = this.game.players.find((entry) => entry.name === accused);
             if (target) {
-                target.health = -1;
+                target.kill();
             }
         }
         this.accuseVotes.clear();
@@ -122,7 +122,7 @@ export class RestHandler {
     }
 
     handleContinueVote(player: Player, direction: 'left' | 'right'): void {
-        if (!this.restActive) {
+        if (!this.restActive || player.health < 1) {
             return;
         }
 
@@ -135,6 +135,7 @@ export class RestHandler {
         const chosenName = voters[Math.floor(Math.random() * voters.length)];
         const chosenDirection = this.continueVotes.get(chosenName) ?? direction;
         this.continueVotes.clear();
+        this.resolveUncarriedBodies();
         this.onAllContinued?.(chosenDirection, chosenName);
     }
 
@@ -147,7 +148,7 @@ export class RestHandler {
     }
 
     handleSkillPick(player: Player, optionIndex: number, targetName?: string, optionChoice?: string): void {
-        if (!this.restActive) {
+        if (!this.restActive || player.health < 1) {
             return;
         }
 
@@ -180,7 +181,7 @@ export class RestHandler {
     }
 
     handleEat(player: Player, amount: number): void {
-        if (!this.restActive) {
+        if (!this.restActive || player.health < 0) {
             return;
         }
         if(player.sleeping) {
@@ -288,7 +289,7 @@ export class RestHandler {
     }
 
     private buildRestPayload(player: Player): string {
-        const skills = this.getSkillsForPlayer(player.name) ?? [];
+        const skills = player.health > 0 ? this.getSkillsForPlayer(player.name) ?? [] : [];
         return JSON.stringify({
             type: 'rest' as const,
             title: 'Resting',
@@ -356,6 +357,26 @@ export class RestHandler {
                 client.send(payload);
                 return;
             }
+        }
+    }
+
+    private resolveUncarriedBodies(): void {
+        let changed = false;
+        for (const player of this.game.players.filter((entry) => entry.health === 0)) {
+            const bodyName = player.bodyItemName();
+            const carried = this.game.players.some((entry) =>
+                entry.name !== player.name && entry.inventory.some((item) => item.name === bodyName),
+            );
+            if (carried) {
+                continue;
+            }
+
+            player.kill();
+            changed = true;
+        }
+
+        if (changed) {
+            this.game.broadcastGame();
         }
     }
 

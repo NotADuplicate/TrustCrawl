@@ -11,6 +11,7 @@ import { Player } from '../player';
 export class Traps extends Event {
     trappedOption: number;
     bags: Item[][] = [];
+    selected: Boolean[];
     constructor(players: Player[]) {
         const trappedOption = Math.floor(Math.random() * 3);
         super(
@@ -34,6 +35,14 @@ export class Traps extends Event {
         this.options[3] = {
             description: 'Leave.',
         }
+        this.selected = [false,false,false]
+    }
+
+    override isOptionAvailable(optionNumber: number, player: Player): boolean {
+        if(optionNumber ==3) {
+            return true;
+        }
+        return !this.selected[optionNumber];
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
@@ -41,6 +50,7 @@ export class Traps extends Event {
         if (optionNumber === 3) {
             return { text: 'You leave the bags alone and move on.', color: 'info' };
         }
+        this.selected[optionNumber] = true;
 
         if(optionNumber === this.trappedOption) {
             for(const p of this.players) {

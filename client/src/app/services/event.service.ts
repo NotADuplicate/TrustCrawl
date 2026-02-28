@@ -34,6 +34,8 @@ export type EventState = {
   resultColor: 'success' | 'danger' | 'warning' | 'info' | null;
   resultDemonText: string | null;
   preview: boolean;
+  won: boolean;
+  winMessage: string | null;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -59,15 +61,31 @@ export class EventService extends Service {
     resultColor: null,
     resultDemonText: null,
     preview: false,
+    won: false,
+    winMessage: null,
   };
 
   private countdownTimer?: ReturnType<typeof setInterval>;
   private lastStatus: 'voting' | 'revealed' = 'voting';
   private readonly listeners: Array<() => void> = [];
+  private readonly winListeners: Array<() => void> = [];
 
   constructor(private readonly socket: SocketService) {
     super();
     this.socket.subscribe((data) => {
+      if (data.type === 'game-won') {
+        this.state.won = true;
+        this.state.winMessage = String(
+          data['message'] ?? 'You defeated the boss monster and escaped the crawl!',
+        );
+        this.stopCountdown();
+        this.refresh();
+        for (const listener of this.winListeners) {
+          listener();
+        }
+        return;
+      }
+
       if (data.type === 'event-ended') {
         this.state.endedMessage = String(data['message'] ?? 'Event ended.');
         this.state.endedColor = (data['color'] as 'success' | 'danger' | 'warning' | 'info') ?? 'info';
@@ -113,7 +131,7 @@ export class EventService extends Service {
         this.state.resultMessage = result.text ?? null;
         this.state.resultColor = result.color ?? null;
         this.state.resultDemonText = result.demonText ?? null;
-      } else if (nextStatus !== 'revealed' || this.state.mode !== 'individual') {
+      } else if (isNewEvent || this.state.mode !== 'individual') {
         this.clearResultState();
       }
 
@@ -136,6 +154,10 @@ export class EventService extends Service {
 
   onNewEvent(listener: () => void): void {
     this.listeners.push(listener);
+  }
+
+  onGameWon(listener: () => void): void {
+    this.winListeners.push(listener);
   }
 
   requestEvent(): void {
@@ -197,6 +219,8 @@ export class EventService extends Service {
     this.clearEndedState();
     this.clearResultState();
     this.state.preview = false;
+    this.state.won = false;
+    this.state.winMessage = null;
     this.stopCountdown();
   }
 

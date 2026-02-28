@@ -136,12 +136,14 @@ export class Game {
             player.inventory = [];
             player.health = 3;
             player.stamina = 3;
+            player.wounded = false;
+            player.dead = false;
             player.addItem(new Food());
             player.addItem(new Food());
             player.addItem(new Tool());
         }
 
-        if(this.players.length > 2 || (this.players.length === 2 && Math.random() < 0.5)) {
+        if(this.players.length > 3 || (this.players.length === 2 && Math.random() < 0.3) || (this.players.length === 3 && Math.random() < 0.6)) {
            this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
         }
         this.floorItems = [];
@@ -169,7 +171,7 @@ export class Game {
                     name: item.name,
                     description: item.description,
                     weight: item.weight,
-                    usable: item.isUsable(this, player),
+                    usable: player.health >= 0 && item.isUsable(this, player),
                 })),
             })),
             floor: this.floorItems.map((item) => ({
@@ -213,7 +215,7 @@ export class Game {
     }
 
     moveToFloor(player: Player, itemName: string): boolean {
-        if (!this.gamePlayers) {
+        if (!this.gamePlayers || player.health < 0) {
             return false;
         }
 
@@ -229,7 +231,7 @@ export class Game {
 
     moveToInventory(player: Player, itemName: string): boolean {
         console.log(`${player.name} is trying to move ${itemName} to their inventory.`);
-        if (!this.gamePlayers) {
+        if (!this.gamePlayers || player.health < 0) {
             return false;
         }
 
@@ -251,7 +253,7 @@ export class Game {
     }
 
     useItem(player: Player, itemName: string): boolean {
-        if (!this.gamePlayers) {
+        if (!this.gamePlayers || player.health < 0) {
             return false;
         }
 
@@ -268,7 +270,7 @@ export class Game {
 
     getItemOptions(player: Player, itemName: string): string[] | null {
         console.log(`${player.name} is requesting options for ${itemName}.`);
-        if (!this.gamePlayers) {
+        if (!this.gamePlayers || player.health < 0) {
             return null;
         }
 
@@ -281,7 +283,7 @@ export class Game {
     }
 
     useItemWithOption(player: Player, itemName: string, optionIndex: number): boolean {
-        if (!this.gamePlayers) {
+        if (!this.gamePlayers || player.health < 0) {
             return false;
         }
 

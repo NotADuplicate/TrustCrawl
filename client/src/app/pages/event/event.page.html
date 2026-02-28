@@ -29,6 +29,17 @@
       <button type="button" class="ghost" (click)="backToResting()">Back</button>
     </div>
 
+    <div class="results" *ngIf="!event.state.preview && event.state.mode === 'individual' && event.state.resultMessage">
+      <ng-container
+        [ngTemplateOutlet]="resultBanner"
+        [ngTemplateOutletContext]="{
+          color: event.state.resultColor,
+          message: event.state.resultMessage,
+          demonText: event.state.resultDemonText
+        }"
+      ></ng-container>
+    </div>
+
     <div class="results" *ngIf="event.state.status === 'revealed'">
       <ng-container *ngIf="event.state.mode === 'group'">
         <h2>Results</h2>
@@ -46,17 +57,7 @@
         </div>
       </ng-container>
 
-      <ng-container *ngIf="event.state.mode === 'individual' && event.state.resultMessage">
-        <ng-container
-          [ngTemplateOutlet]="resultBanner"
-          [ngTemplateOutletContext]="{
-            color: event.state.resultColor,
-            message: event.state.resultMessage,
-            demonText: event.state.resultDemonText
-          }"
-        ></ng-container>
-      </ng-container>
-    </div>
+      </div>
 
     <div class="selection" *ngIf="event.state.endedMessage">
       <ng-container
@@ -125,4 +126,22 @@
     </button>
   </div>
   <button type="button" class="ghost" (click)="closeQuantityPrompt()">Cancel</button>
+</ng-template>
+
+<ng-container *ngIf="showContinueWarning()">
+  <ng-container
+    [ngTemplateOutlet]="modalShell"
+    [ngTemplateOutletContext]="{
+      title: 'Unseen floor items',
+      description: 'There are items on the ground that you have not checked in the inventory yet. Continue anyway?',
+      content: continueWarningContent
+    }"
+  ></ng-container>
+</ng-container>
+
+<ng-template #continueWarningContent>
+  <div class="modal-actions">
+    <button type="button" (click)="confirmContinueAfterEvent()">Continue</button>
+    <button type="button" class="ghost" (click)="closeContinueWarning()">Cancel</button>
+  </div>
 </ng-template>
