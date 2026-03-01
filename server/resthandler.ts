@@ -33,6 +33,9 @@ export class RestHandler {
     private readonly continueVotes = new Map<string, 'left' | 'right'>();
     private readonly accuseVotes = new Map<string, boolean>();
     private currentAccuse: { accuser: string; accused: string } | null = null;
+    private restStartedAt = Date.now();
+    private restTimerDurationMs = 0;
+    private restTimer: NodeJS.Timeout | undefined;
     restActive = false;
 
     constructor(
@@ -54,6 +57,11 @@ export class RestHandler {
         this.continueVotes.clear();
         this.accuseVotes.clear();
         this.currentAccuse = null;
+        this.restTimerDurationMs = 0;
+        if (this.restTimer) {
+            clearTimeout(this.restTimer);
+            this.restTimer = undefined;
+        }
     }
 
     endRest(): void {
@@ -64,6 +72,11 @@ export class RestHandler {
         this.continueVotes.clear();
         this.accuseVotes.clear();
         this.currentAccuse = null;
+        this.restTimerDurationMs = 0;
+        if (this.restTimer) {
+            clearTimeout(this.restTimer);
+            this.restTimer = undefined;
+        }
         this.game.floorItems = [];
         this.game.broadcastGame();
     }
@@ -135,8 +148,7 @@ export class RestHandler {
         const chosenName = voters[Math.floor(Math.random() * voters.length)];
         const chosenDirection = this.continueVotes.get(chosenName) ?? direction;
         this.continueVotes.clear();
-        this.resolveUncarriedBodies();
-        this.onAllContinued?.(chosenDirection, chosenName);
+        this.finalizeContinue(chosenDirection, chosenName);
     }
 
     handleRestRequest(socket: WebSocket): void {
@@ -244,6 +256,8 @@ export class RestHandler {
         this.accuseVotes.clear();
         this.currentAccuse = null;
         this.findItem();
+        this.restStartedAt = Date.now();
+        this.restTimerDurationMs = this.game.getRestTimerMs();
         for (const player of this.game.players) {
             player.sleeping = true;
             player.scouting = 'neither';
@@ -257,6 +271,7 @@ export class RestHandler {
         this.game.level++;
         this.broadcastRest();
         this.game.broadcastGame();
+        this.startRestTimer();
 
         try {
             this.onRestStarted?.();
@@ -304,6 +319,8 @@ export class RestHandler {
             haveEaten: this.eatenStatus.get(player.name) ?? false,
             hauling: player.hauling,
             scouting: player.scouting,
+            totalSeconds: Math.ceil(this.restTimerDurationMs / 1000),
+            secondsLeft: this.getRestSecondsLeft(),
         });
     }
 
@@ -378,6 +395,82 @@ export class RestHandler {
         if (changed) {
             this.game.broadcastGame();
         }
+    }
+
+    private startRestTimer(): void {
+        if (this.restTimer) {
+            clearTimeout(this.restTimer);
+        }
+
+        this.restTimer = setTimeout(() => {
+            this.autoResolveRest();
+        }, this.restTimerDurationMs);
+    }
+
+    private autoResolveRest(): void {
+        if (!this.restActive) {
+            return;
+        }
+
+        for (const player of this.game.players.filter((entry) => entry.health >= 0)) {
+            if (!this.eatenStatus.get(player.name)) {
+                const autoEatAmount = player.inventory.some((item) => item.name === 'Food') ? 1 : 0;
+                this.handleEat(player, autoEatAmount);
+            }
+
+            this.dropUntilCarryLimit(player);
+        }
+
+        this.broadcastRest();
+        this.game.broadcastGame();
+
+        const direction: 'left' | 'right' = Math.random() < 0.5 ? 'left' : 'right';
+        const eligiblePlayers = this.game.players.filter((player) => player.health > 0);
+        const chooser = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)] ?? this.game.players[0];
+        if (!chooser) {
+            return;
+        }
+
+        this.finalizeContinue(direction, chooser.name);
+    }
+
+    private finalizeContinue(direction: 'left' | 'right', playerName: string): void {
+        if (this.restTimer) {
+            clearTimeout(this.restTimer);
+            this.restTimer = undefined;
+        }
+
+        this.restTimerDurationMs = 0;
+        this.resolveUncarriedBodies();
+        this.onAllContinued?.(direction, playerName);
+    }
+
+    private dropUntilCarryLimit(player: Player): void {
+        const capacity = this.getCarryCapacity(player);
+        while (player.inventory.reduce((sum, item) => sum + item.weight, 0) > capacity) {
+            const maxWeight = Math.max(...player.inventory.map((item) => item.weight));
+            const heaviestItems = player.inventory.filter((item) => item.weight === maxWeight);
+            const dropItem = heaviestItems[Math.floor(Math.random() * heaviestItems.length)];
+            if (!dropItem) {
+                return;
+            }
+
+            const removed = player.removeItem(dropItem.name);
+            if (!removed) {
+                return;
+            }
+
+            this.game.floorItems.push(removed);
+        }
+    }
+
+    private getCarryCapacity(player: Player): number {
+        return player.hauling ? 12 : 6;
+    }
+
+    private getRestSecondsLeft(): number {
+        const elapsedMs = Date.now() - this.restStartedAt;
+        return Math.max(0, Math.ceil((this.restTimerDurationMs - elapsedMs) / 1000));
     }
 
     private broadcastAccuse(): void {

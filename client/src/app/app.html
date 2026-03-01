@@ -27,14 +27,14 @@
 	</div>
 </div>
 
-<div class="global-timer" *ngIf="event.state.active && event.state.status === 'voting'">
+<div class="level-display" *ngIf="showHud()">
+	Level {{ inventory.state.level }}
+</div>
+
+<div class="global-timer" *ngIf="showGlobalTimer()">
 	<div class="global-timer__track">
 		<div class="global-timer__fill" [style.width.%]="timerPercent()"></div>
 	</div>
-</div>
-
-<div class="level-display" *ngIf="showHud()">
-	Level {{ inventory.state.level }}
 </div>
 
 <button

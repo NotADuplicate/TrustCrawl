@@ -13,7 +13,9 @@ export class EventHandler {
     private endContinues = new Set<string>();
     private revealedPlayers = new Set<string>();
     private eventStartedAt = Date.now();
+    private activeTimerMs = 0;
     private eventTimer: NodeJS.Timeout | undefined;
+    private eventContinueTimer: NodeJS.Timeout | undefined;
     private eventFinished = false;
     private currentEvent: Event;
     private previewLeft?: Event;
@@ -54,12 +56,17 @@ export class EventHandler {
         this.eventFinished = false;
         this.eventActive = false;
         this.eventStartedAt = Date.now();
+        this.activeTimerMs = 0;
         this.previewLeft = undefined;
         this.previewRight = undefined;
         this.bossEvent = null;
         if (this.eventTimer) {
             clearTimeout(this.eventTimer);
             this.eventTimer = undefined;
+        }
+        if (this.eventContinueTimer) {
+            clearTimeout(this.eventContinueTimer);
+            this.eventContinueTimer = undefined;
         }
     }
 
@@ -83,13 +90,7 @@ export class EventHandler {
 
         this.endContinues.add(player.name);
         if (this.endContinues.size >= this.game.players.filter(p => p.health>0).length) {
-            this.endContinues.clear();
-            if (this.isBossVictory()) {
-                this.game.currentEvent = null;
-                this.broadcastGameWon();
-                return;
-            }
-            this.onEventFinished?.();
+            this.finishEventTransition();
         }
     }
 
@@ -168,6 +169,7 @@ export class EventHandler {
         this.revealedPlayers.clear();
         this.endContinues.clear();
         this.eventStartedAt = Date.now();
+        this.activeTimerMs = this.game.getEventTimerMs();
         this.previewLeft = undefined;
         this.previewRight = undefined;
 
@@ -255,7 +257,7 @@ export class EventHandler {
 
     private getSecondsLeft(): number {
         const elapsedMs = Date.now() - this.eventStartedAt;
-        return Math.max(0, Math.ceil((45_000 - elapsedMs) / 1000));
+        return Math.max(0, Math.ceil((this.activeTimerMs - elapsedMs) / 1000));
     }
 
     private ensureRandomVotes(): void {
@@ -294,7 +296,8 @@ export class EventHandler {
                 ...(isDemon && option.demonText ? { demonText: option.demonText } : {}),
             })),
             mode: this.currentEvent.mode,
-            secondsLeft: status === 'revealed' ? 0 : this.getSecondsLeft(),
+            totalSeconds: Math.ceil(this.activeTimerMs / 1000),
+            secondsLeft: this.getSecondsLeft(),
             status,
         };
 
@@ -390,9 +393,12 @@ export class EventHandler {
             clearTimeout(this.eventTimer);
             this.eventTimer = undefined;
         }
+        this.eventStartedAt = Date.now();
+        this.activeTimerMs = this.game.getEventContinueTimerMs();
         this.broadcastEvent();
         this.broadcastEventEnded(result);
         this.eventActive = false;
+        this.startEventContinueTimer();
     }
 
     private isBossVictory(): boolean {
@@ -467,7 +473,34 @@ export class EventHandler {
             this.eventStartedAt = Date.now();
             this.ensureEventTimer();
             this.broadcastEvent();
-        }, 45_000);
+        }, this.game.getEventTimerMs());
+    }
+
+    private startEventContinueTimer(): void {
+        if (this.eventContinueTimer) {
+            clearTimeout(this.eventContinueTimer);
+        }
+
+        this.eventContinueTimer = setTimeout(() => {
+            this.finishEventTransition();
+        }, this.activeTimerMs);
+    }
+
+    private finishEventTransition(): void {
+        if (this.eventContinueTimer) {
+            clearTimeout(this.eventContinueTimer);
+            this.eventContinueTimer = undefined;
+        }
+
+        this.activeTimerMs = 0;
+        this.endContinues.clear();
+        if (this.isBossVictory()) {
+            this.game.currentEvent = null;
+            this.broadcastGameWon();
+            return;
+        }
+
+        this.onEventFinished?.();
     }
 
     groupEventResolve(): { selectedOption: number | null; selectedPlayer: string | null; result: EventResult; repeatable: boolean } {

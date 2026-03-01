@@ -45,7 +45,20 @@
       <h2>Host controls</h2>
       <p *ngIf="!inventory.state.isHost">Waiting for the host to start the game.</p>
       <div class="actions" *ngIf="inventory.state.isHost">
-        <button type="button" (click)="inventory.startGame()" [disabled]="inventory.state.gameStarted">
+        <label class="difficulty-picker">
+          <span>Difficulty</span>
+          <select
+            [ngModel]="selectedDifficulty"
+            (ngModelChange)="setDifficulty($event)"
+            [disabled]="inventory.state.gameStarted"
+            name="difficulty"
+          >
+            <option value="beginner">Beginner</option>
+            <option value="normal">Normal</option>
+            <option value="expert">Expert</option>
+          </select>
+        </label>
+        <button type="button" (click)="startGame()" [disabled]="inventory.state.gameStarted">
           Start game
         </button>
       </div>

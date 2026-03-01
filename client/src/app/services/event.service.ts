@@ -19,6 +19,7 @@ export type EventState = {
   options: EventOption[];
   status: 'voting' | 'revealed' | 'preview';
   mode: EventMode;
+  totalSeconds: number;
   secondsLeft: number;
   results: Array<{ optionIndex: number; votes: number }>;
   selectedOption: number | null;
@@ -46,6 +47,7 @@ export class EventService extends Service {
     options: [],
     status: 'voting',
     mode: 'group',
+    totalSeconds: 45,
     secondsLeft: 0,
     results: [],
     selectedOption: null,
@@ -119,6 +121,7 @@ export class EventService extends Service {
       this.applyBaseState(data, false);
       this.state.status = nextStatus;
       this.lastStatus = nextStatus;
+      this.state.totalSeconds = typeof data['totalSeconds'] === 'number' ? data['totalSeconds'] : this.state.totalSeconds;
       this.state.results = Array.isArray(data['results'])
         ? (data['results'] as Array<{ optionIndex: number; votes: number }>)
         : [];
@@ -209,6 +212,7 @@ export class EventService extends Service {
     this.state.options = [];
     this.state.status = 'voting';
     this.state.mode = 'group';
+    this.state.totalSeconds = 45;
     this.state.secondsLeft = 0;
     this.state.results = [];
     this.state.selectedOption = null;
@@ -248,9 +252,7 @@ export class EventService extends Service {
   private startCountdown(secondsLeft: number, status: 'voting' | 'revealed'): void {
     this.stopCountdown();
     this.state.secondsLeft = Math.max(0, secondsLeft);
-
-    if (status === 'revealed') {
-      this.state.secondsLeft = 0;
+    if (this.state.secondsLeft <= 0) {
       return;
     }
 

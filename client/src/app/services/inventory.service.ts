@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { SocketService, type ConnectionStatus } from './socket.service';
 
+export type GameDifficulty = 'beginner' | 'normal' | 'expert';
+
 export type GameItem = {
   name: string;
   description: string;
@@ -24,6 +26,7 @@ export type InventoryState = {
   name: string;
   players: string[];
   isHost: boolean;
+  difficulty: GameDifficulty;
   gameStarted: boolean;
   gamePlayers: PlayerState[];
   floorItems: GameItem[];
@@ -42,6 +45,7 @@ export class InventoryService {
     name: '',
     players: [],
     isHost: false,
+    difficulty: 'normal',
     gameStarted: false,
     gamePlayers: [],
     floorItems: [],
@@ -68,6 +72,7 @@ export class InventoryService {
           data['players'] as string[],
           Boolean(data['isHost']),
           Boolean(data['gameStarted']),
+          ((data['difficulty'] as GameDifficulty) ?? 'normal'),
         );
       }
 
@@ -184,12 +189,12 @@ export class InventoryService {
     }
   }
 
-  startGame(): void {
+  startGame(difficulty: GameDifficulty = this.state.difficulty): void {
     if (!this.connected || !this.state.isHost || this.state.gameStarted) {
       return;
     }
 
-    this.socket.send({ type: 'start' });
+    this.socket.send({ type: 'start', difficulty });
   }
 
   moveToFloor(itemName: string): void {
@@ -267,11 +272,17 @@ export class InventoryService {
     return Boolean(itemName && this.connected && this.state.gameStarted);
   }
 
-  private applyLobbyState(players: string[], isHost: boolean, gameStarted: boolean): void {
+  private applyLobbyState(
+    players: string[],
+    isHost: boolean,
+    gameStarted: boolean,
+    difficulty: GameDifficulty,
+  ): void {
     const startedNow = gameStarted;
     const wasStarted = this.state.gameStarted;
     this.state.players = players;
     this.state.isHost = isHost;
+    this.state.difficulty = difficulty;
     this.state.gameStarted = startedNow;
 
     if (startedNow && !wasStarted) {
@@ -307,6 +318,7 @@ export class InventoryService {
   private resetState(clearName: boolean): void {
     this.state.players = [];
     this.state.isHost = false;
+    this.state.difficulty = 'normal';
     this.state.gameStarted = false;
     this.state.gamePlayers = [];
     this.state.floorItems = [];

@@ -139,7 +139,7 @@
 
 .global-timer {
 	position: fixed;
-	top: 1.25rem;
+	top: 4.4rem;
 	left: 50%;
 	transform: translateX(-50%);
 	width: min(420px, 80vw);
@@ -163,7 +163,7 @@
 
 .level-display {
 	position: fixed;
-	top: 2.5rem;
+	top: 1.25rem;
 	left: 50%;
 	transform: translateX(-50%);
 	padding: 0.35rem 0.9rem;
@@ -216,3 +216,4 @@
 	font-weight: 700;
 	cursor: pointer;
 }
+

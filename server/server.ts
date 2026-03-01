@@ -8,7 +8,7 @@ import express from 'express';
 import { join } from 'node:path';
 import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { Game } from './game';
+import { Game, type GameDifficulty } from './game';
 import { EventHandler } from './eventhandler';
 import { RestHandler } from './resthandler';
 
@@ -50,6 +50,7 @@ wss.on('connection', (socket) => {
                 optionChoice?: string;
                 accused?: string;
                 vote?: boolean;
+                difficulty?: GameDifficulty;
             };
 
             if (data.type === 'join' && data.name) {
@@ -76,7 +77,9 @@ wss.on('connection', (socket) => {
             }
 
             if (data.type === 'start' && socket === game.hostSocket && !game.gamePlayers) {
-                if (!game.startGame()) {
+                const difficulty: GameDifficulty =
+                    data.difficulty === 'beginner' || data.difficulty === 'expert' ? data.difficulty : 'normal';
+                if (!game.startGame(difficulty)) {
                     return;
                 }
 

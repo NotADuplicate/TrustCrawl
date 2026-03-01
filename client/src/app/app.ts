@@ -17,7 +17,6 @@ export class App {
   protected readonly currentRoute = signal('/');
   protected readonly previousRoute = signal<string | null>(null);
   private readonly router: Router;
-  private readonly eventTotalSeconds = 45;
 
   constructor(
     protected readonly inventory: InventoryService,
@@ -30,6 +29,7 @@ export class App {
     this.router = router;
     this.socket.registerChangeDetector(this.cdr);
     this.event.registerChangeDetector(this.cdr);
+    this.resting.registerChangeDetector(this.cdr);
     router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
@@ -40,6 +40,7 @@ export class App {
       });
 
     this.event.onNewEvent(() => {
+      this.resting.reset();
       if (this.currentRoute() !== '/event') {
         this.router.navigateByUrl('/event');
       }
@@ -52,6 +53,7 @@ export class App {
     });
 
     this.resting.onNewRest(() => {
+      this.event.reset();
       if (this.currentRoute() !== '/resting') {
         this.router.navigateByUrl('/resting');
       }
@@ -81,9 +83,38 @@ export class App {
   }
 
   protected timerPercent(): number {
-    const remaining = this.event.state.secondsLeft;
-    const percent = (remaining / this.eventTotalSeconds) * 100;
+    const remaining = this.activeTimerSeconds();
+    const totalSeconds = Math.max(1, this.activeTimerTotalSeconds());
+    const percent = (remaining / totalSeconds) * 100;
     return Math.max(0, Math.min(100, percent));
+  }
+
+  protected showGlobalTimer(): boolean {
+    return this.showHud() && this.activeTimerSeconds() > 0;
+  }
+
+  protected activeTimerSeconds(): number {
+    if (this.event.state.active) {
+      return this.event.state.secondsLeft;
+    }
+
+    if (this.resting.state.active) {
+      return this.resting.state.secondsLeft;
+    }
+
+    return 0;
+  }
+
+  protected activeTimerTotalSeconds(): number {
+    if (this.event.state.active) {
+      return this.event.state.totalSeconds;
+    }
+
+    if (this.resting.state.active) {
+      return this.resting.state.totalSeconds;
+    }
+
+    return 0;
   }
 
   protected useItemOption(optionIndex: number): void {

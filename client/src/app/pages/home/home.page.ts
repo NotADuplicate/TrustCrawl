@@ -2,7 +2,7 @@ import { NgFor, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { InventoryService } from '../../services/inventory.service';
+import { InventoryService, type GameDifficulty } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-home-page',
@@ -12,6 +12,7 @@ import { InventoryService } from '../../services/inventory.service';
 })
 export class HomePage {
   protected readonly inventory = inject(InventoryService);
+  protected selectedDifficulty: GameDifficulty = 'normal';
   private readonly router = inject(Router);
 
   constructor() {
@@ -22,5 +23,13 @@ export class HomePage {
 
   protected showReconnectHint(): boolean {
     return !this.inventory.connected && this.inventory.state.name.trim().length > 0;
+  }
+
+  protected setDifficulty(difficulty: GameDifficulty): void {
+    this.selectedDifficulty = difficulty;
+  }
+
+  protected startGame(): void {
+    this.inventory.startGame(this.selectedDifficulty);
   }
 }

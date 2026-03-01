@@ -5,6 +5,23 @@ import { Player } from "./models/player";
 import { type WebSocket } from 'ws';
 import { Event } from "./models/event";
 
+export type GameDifficulty = 'beginner' | 'normal' | 'expert';
+
+export const DIFFICULTY_TIMER_CONFIG: Record<GameDifficulty, { baseSeconds: number; secondsPerPlayer: number }> = {
+    beginner: {
+        baseSeconds: 40,
+        secondsPerPlayer: 6,
+    },
+    normal: {
+        baseSeconds: 30,
+        secondsPerPlayer: 5,
+    },
+    expert: {
+        baseSeconds: 24,
+        secondsPerPlayer: 4,
+    },
+};
+
 export class Game {
     readonly clients = new Map<WebSocket, Player>();
     readonly players: Player[] = [];
@@ -16,6 +33,7 @@ export class Game {
     floorItems: Item[] = [];
     demonName: string | null = null;
     currentEvent: Event | null = null;
+    difficulty: GameDifficulty = 'normal';
 
     constructor(disconnectGraceMs = 60_000) {
         this.disconnectGraceMs = disconnectGraceMs;
@@ -96,6 +114,7 @@ export class Game {
         this.players.length = 0;
         this.level = 0;
         this.clients.clear();
+        this.difficulty = 'normal';
         for (const timeout of this.pendingDisconnects.values()) {
             clearTimeout(timeout);
         }
@@ -120,17 +139,19 @@ export class Game {
                         players: playerNames,
                         isHost: client === this.hostSocket,
                         gameStarted: Boolean(this.gamePlayers),
+                        difficulty: this.difficulty,
                     }),
                 );
             }
         }
     }
 
-    startGame(): boolean {
+    startGame(difficulty: GameDifficulty = 'normal'): boolean {
         if (this.players.length === 0) {
             return false;
         }
 
+        this.difficulty = difficulty;
         this.gamePlayers = this.players;
         for (const player of this.players) {
             player.inventory = [];
@@ -150,6 +171,24 @@ export class Game {
         this.broadcastState();
         this.broadcastGame();
         return true;
+    }
+
+    getEventTimerSeconds(): number {
+        const config = DIFFICULTY_TIMER_CONFIG[this.difficulty];
+        const playerCount = Math.max(1, this.players.filter((player) => player.health >= 0).length);
+        return config.baseSeconds + config.secondsPerPlayer * playerCount;
+    }
+
+    getEventTimerMs(): number {
+        return this.getEventTimerSeconds() * 1000;
+    }
+
+    getEventContinueTimerMs(): number {
+        return Math.max(1_000, Math.ceil(this.getEventTimerMs() / 3));
+    }
+
+    getRestTimerMs(): number {
+        return Math.max(1_000, Math.ceil(this.getEventTimerMs() * 1.3));
     }
 
     buildGamePayload(playerName: string): string | null {

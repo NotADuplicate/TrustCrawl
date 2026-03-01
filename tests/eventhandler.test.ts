@@ -3,6 +3,7 @@ import { EventHandler } from '../server/eventhandler';
 import { Game } from '../server/game';
 import { Boss } from '../server/models/Events/boss';
 import { Rubble } from '../server/models/Events';
+import { beforeEach, afterEach } from 'vitest';
 
 type MockSocket = {
   OPEN: number;
@@ -19,6 +20,14 @@ function createSocket(): MockSocket {
 }
 
 describe('EventHandler', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('creates the boss lazily using the current player count', () => {
     const game = new Game(0);
     game.addPlayer(createSocket() as never, 'Alice');
@@ -89,5 +98,24 @@ describe('EventHandler', () => {
     const payloads = socket.send.mock.calls.map(([payload]) => String(payload));
     expect(payloads.some((payload) => payload.includes('"type":"game"'))).toBe(true);
     expect(payloads.some((payload) => payload.includes('"type":"event"'))).toBe(true);
+  });
+
+  it('automatically finishes the event after the continue timer expires', () => {
+    const game = new Game(0);
+    game.addPlayer(createSocket() as never, 'Charlie');
+    game.gamePlayers = game.players;
+
+    const onEventFinished = vi.fn();
+    const handler = new EventHandler(game, onEventFinished);
+    const internals = handler as unknown as {
+      currentEvent: Rubble;
+      revealEvent: (result: { text: string; color: 'info' }) => void;
+    };
+    internals.currentEvent = new Rubble(game.players);
+
+    internals.revealEvent({ text: 'Resolved', color: 'info' });
+    vi.advanceTimersByTime(game.getEventContinueTimerMs());
+
+    expect(onEventFinished).toHaveBeenCalledOnce();
   });
 });
