@@ -17,6 +17,10 @@ export class Item {
         return `You can't use the ${this.name}.`;
     }
 
+    useVerbName(): string {
+        return `Use`;
+    }
+
     getOptions(game: Game, player: Player): string[] {
         return [];
     }

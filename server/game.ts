@@ -210,6 +210,7 @@ export class Game {
                     name: item.name,
                     description: item.description,
                     weight: item.weight,
+                    useVerb: item.useVerbName(),
                     usable: player.health >= 0 && item.isUsable(this, player),
                 })),
             })),
@@ -217,6 +218,7 @@ export class Game {
                 name: item.name,
                 description: item.description,
                 weight: item.weight,
+                useVerb: item.useVerbName(),
                 usable: false,
             })),
         });

@@ -39,10 +39,21 @@
         (dragover)="allowDrop($event)"
         (drop)="onDropToFloor()"
       >
-        <h2>Floor</h2>
+        <div class="panel-header">
+          <h2>Floor</h2>
+          <span
+            class="floor-notice"
+            *ngIf="inventory.state.hasUnseenFloorItems"
+            aria-label="There are unseen floor items"
+            title="There are unseen floor items"
+          >
+            <span class="floor-notice__dot"></span>
+            New
+          </span>
+        </div>
         <p class="hint">Drop items here to share them with everyone.</p>
-        <div class="item-grid" *ngIf="inventory.state.floorItems.length > 0; else emptyFloor">
-          <ng-container *ngFor="let item of inventory.state.floorItems">
+        <div class="item-grid" *ngIf="inventory.floorItemsStacked.length > 0; else emptyFloor">
+          <ng-container *ngFor="let item of inventory.floorItemsStacked">
             <ng-container
               [ngTemplateOutlet]="itemCard"
               [ngTemplateOutletContext]="{
@@ -70,9 +81,11 @@
 <ng-template #itemCard let-item="item" let-source="source" let-showUseButton="showUseButton">
   <article
     class="item"
+    [class.item--pickup]="source === 'floor'"
     draggable="true"
     (dragstart)="onDragStart(item.name, source)"
     (dragend)="onDragEnd()"
+    (click)="onItemClick(item.name, source)"
   >
     <span class="quantity" *ngIf="item.quantity && item.quantity > 1">x{{ item.quantity }}</span>
     <h3>{{ item.name }}</h3>
@@ -82,9 +95,9 @@
       type="button"
       class="ghost"
       *ngIf="showUseButton"
-      (click)="useItem(item.name)"
+      (click)="$event.stopPropagation(); useItem(item.name)"
     >
-      Use
+      {{ item.useVerb || 'Use' }}
     </button>
   </article>
 </ng-template>

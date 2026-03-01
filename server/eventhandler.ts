@@ -1,7 +1,8 @@
 import { Game } from "./game";
-import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant, Carcass, Spiders, SuspiciousMerchant, GiantBoar } from "./models/Events";
+import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant, Carcass, Spiders, SuspiciousMerchant, GiantBoar, Cleric } from "./models/Events";
 import { Boss } from "./models/Events/boss";
 import { GamblingGround } from "./models/Events/gambling";
+import { TooSlow } from "./models/Events/tooSlow";
 import { Traps } from "./models/Events/traps";
 import { Event, EventResult } from "./models/event";
 import { Player } from "./models/player";
@@ -22,6 +23,7 @@ export class EventHandler {
     private previewRight?: Event;
     private lastThreeEvents: Event[] = [];
     private bossEvent: Boss | null = null;
+    private onCurrentEventFinished?: () => void;
     eventActive = false;
 
     private readonly EventPool = [
@@ -38,7 +40,8 @@ export class EventHandler {
         Carcass,
         Spiders,
         SuspiciousMerchant,
-        GiantBoar
+        GiantBoar,
+        Cleric
     ];
 
     constructor(
@@ -60,6 +63,7 @@ export class EventHandler {
         this.previewLeft = undefined;
         this.previewRight = undefined;
         this.bossEvent = null;
+        this.onCurrentEventFinished = this.onEventFinished;
         if (this.eventTimer) {
             clearTimeout(this.eventTimer);
             this.eventTimer = undefined;
@@ -160,26 +164,23 @@ export class EventHandler {
 
     startEvent(direction: 'left' | 'right'): void {
         console.log(`Starting event in direction`);
-        this.currentEvent = direction === 'left' ? this.previewLeft! : this.previewRight!; 
-        this.game.currentEvent = this.currentEvent;
-        this.game.broadcastGame();
-        this.eventActive = true;
-        this.eventFinished = false;
-        this.votes.clear();
-        this.revealedPlayers.clear();
-        this.endContinues.clear();
-        this.eventStartedAt = Date.now();
-        this.activeTimerMs = this.game.getEventTimerMs();
-        this.previewLeft = undefined;
-        this.previewRight = undefined;
-
-        this.lastThreeEvents.push(this.currentEvent);
-        if (this.lastThreeEvents.length > 3) {
-            this.lastThreeEvents.shift();
+        const nextEvent = direction === 'left' ? this.previewLeft : this.previewRight;
+        if (!nextEvent) {
+            return;
         }
 
-        this.ensureEventTimer();
-        this.broadcastEvent();
+        this.beginEvent(nextEvent, this.onEventFinished, true, true);
+    }
+
+    startTooSlowEvent(failedPlayers: Player[], onFinished?: () => void): void {
+        if (failedPlayers.length === 0) {
+            onFinished?.();
+            return;
+        }
+
+        const tooSlow = new TooSlow(this.game.players, failedPlayers);
+        tooSlow.game = this.game;
+        this.beginEvent(tooSlow, onFinished ?? this.onEventFinished, false, false);
     }
 
     prepareRestPreviews(): void {
@@ -258,6 +259,43 @@ export class EventHandler {
     private getSecondsLeft(): number {
         const elapsedMs = Date.now() - this.eventStartedAt;
         return Math.max(0, Math.ceil((this.activeTimerMs - elapsedMs) / 1000));
+    }
+
+    private beginEvent(event: Event, onFinished?: () => void, trackHistory = true, clearPreviews = true): void {
+        if (this.eventTimer) {
+            clearTimeout(this.eventTimer);
+            this.eventTimer = undefined;
+        }
+        if (this.eventContinueTimer) {
+            clearTimeout(this.eventContinueTimer);
+            this.eventContinueTimer = undefined;
+        }
+
+        this.currentEvent = event;
+        this.onCurrentEventFinished = onFinished ?? this.onEventFinished;
+        this.game.currentEvent = this.currentEvent;
+        this.game.broadcastGame();
+        this.eventActive = true;
+        this.eventFinished = false;
+        this.votes.clear();
+        this.revealedPlayers.clear();
+        this.endContinues.clear();
+        this.eventStartedAt = Date.now();
+        this.activeTimerMs = this.game.getEventTimerMs();
+        if (clearPreviews) {
+            this.previewLeft = undefined;
+            this.previewRight = undefined;
+        }
+
+        if (trackHistory) {
+            this.lastThreeEvents.push(this.currentEvent);
+            if (this.lastThreeEvents.length > 3) {
+                this.lastThreeEvents.shift();
+            }
+        }
+
+        this.ensureEventTimer();
+        this.broadcastEvent();
     }
 
     private ensureRandomVotes(): void {
@@ -482,6 +520,14 @@ export class EventHandler {
         }
 
         this.eventContinueTimer = setTimeout(() => {
+            const failedPlayers = this.game.players.filter(
+                (player) => player.health > 0 && !this.endContinues.has(player.name),
+            );
+            if (!(this.currentEvent instanceof TooSlow) && failedPlayers.length > 0) {
+                const pendingTransition = this.onCurrentEventFinished;
+                this.startTooSlowEvent(failedPlayers, pendingTransition);
+                return;
+            }
             this.finishEventTransition();
         }, this.activeTimerMs);
     }
@@ -500,7 +546,7 @@ export class EventHandler {
             return;
         }
 
-        this.onEventFinished?.();
+        this.onCurrentEventFinished?.();
     }
 
     groupEventResolve(): { selectedOption: number | null; selectedPlayer: string | null; result: EventResult; repeatable: boolean } {

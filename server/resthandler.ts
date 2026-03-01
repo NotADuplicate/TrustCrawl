@@ -40,7 +40,7 @@ export class RestHandler {
 
     constructor(
         private readonly game: Game,
-        private readonly onAllContinued?: (direction: 'left' | 'right', playerName: string) => void,
+        private readonly onAllContinued?: (direction: 'left' | 'right', playerName: string, slowPlayers?: Player[]) => void,
         private readonly onRestStarted?: () => void,
     ) { }
 
@@ -197,7 +197,7 @@ export class RestHandler {
             return;
         }
         if(player.sleeping) {
-            player.stamina = 3;
+            player.stamina = player.maxStamina;
         }
 
         const foodToEat = Math.max(0, Math.min(2, Math.floor(amount)));
@@ -412,6 +412,10 @@ export class RestHandler {
             return;
         }
 
+        const slowPlayers = this.game.players.filter(
+            (player) => player.health > 0 && !this.continueVotes.has(player.name),
+        );
+
         for (const player of this.game.players.filter((entry) => entry.health >= 0)) {
             if (!this.eatenStatus.get(player.name)) {
                 const autoEatAmount = player.inventory.some((item) => item.name === 'Food') ? 1 : 0;
@@ -431,10 +435,10 @@ export class RestHandler {
             return;
         }
 
-        this.finalizeContinue(direction, chooser.name);
+        this.finalizeContinue(direction, chooser.name, slowPlayers);
     }
 
-    private finalizeContinue(direction: 'left' | 'right', playerName: string): void {
+    private finalizeContinue(direction: 'left' | 'right', playerName: string, slowPlayers?: Player[]): void {
         if (this.restTimer) {
             clearTimeout(this.restTimer);
             this.restTimer = undefined;
@@ -442,7 +446,7 @@ export class RestHandler {
 
         this.restTimerDurationMs = 0;
         this.resolveUncarriedBodies();
-        this.onAllContinued?.(direction, playerName);
+        this.onAllContinued?.(direction, playerName, slowPlayers);
     }
 
     private dropUntilCarryLimit(player: Player): void {

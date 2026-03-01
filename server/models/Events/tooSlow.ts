@@ -1,28 +1,22 @@
-import { runInThisContext } from 'vm';
 import { Game } from '../../game';
 import { Event, EventResult } from '../event';
-import { Item } from '../item';
-import { Satchel, Tea } from '../Items/Equipment';
-import { Bandadge } from '../Items/Equipment/bandadge';
-import { Firewood } from '../Items/Supplies/firewood';
-import { Gold } from '../Items/Supplies/gold';
-import { Key } from '../Items/Supplies/key';
-import { Shiv } from '../Items/Supplies/shiv';
 import { Player } from '../player';
-export class Monster extends Event {
+export class TooSlow extends Event {
     health: number;
-    treasureAmount: number;
-    constructor(players: Player[]) {
-        let health = Math.floor(Math.random() * players.length) + 2;
-        let treasureAmount = Math.floor(Math.random() * players.length);
+    constructor(players: Player[], slowPlayers: Player[]) {
+        let health = Math.floor(Math.random() * players.length) + 1;
+        const slowNames = slowPlayers.map((player) => player.name).join(', ');
+        let description = `A monster has caught up to you because following players failed to continue in time: ${slowNames}.\nAny players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.\nIt has between 1 and ${players.length} health.`;
+        if(slowPlayers.length === 1) {
+            description = `A monster has caught up to you because ${slowNames} failed to continue in time.\nAny players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.\nIt has between 1 and ${players.length} health.`;
+        }
         super(
-            'Monster',
-            `Any players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.
-            \nIt has between 2 and ${players.length+1} health. If killed it will drop between 0 and ${players.length} items on the floor.`,
+            'Too Slow!',
+            description,
             [
                 {
                     description: 'Attack the monster. Take 1 damage and deal damage',
-                    demonText: `The monster has ${health} health. It will drop ${treasureAmount} items when killed.`
+                    demonText: `The monster has ${health} health.`
                 },
                 {
                     description: 'Wait around, if the monster is not killed by other players, you will take 1 damage.',
@@ -32,7 +26,6 @@ export class Monster extends Event {
             players
         );
         this.health = health;
-        this.treasureAmount = treasureAmount;
     }
 
     override optionSelected(optionNumber: number, player: Player): EventResult {
@@ -51,13 +44,7 @@ export class Monster extends Event {
             }
             return { text: 'The monster survived and dealt 1 damage to all players!', color: 'danger' };
         }
-        const treasureOptions = [Gold, Firewood, Shiv, Key, Bandadge, Tea, Satchel];
-        const treasures: Item[] = [];
-        for(let i = 0; i < this.treasureAmount; i++) {
-            const TreasureClass = treasureOptions[Math.floor(Math.random() * treasureOptions.length)];
-            treasures.push(new TreasureClass());
-        }
-        return { text: `The monster was defeated! It dropped ${treasures.map(t => t.name).join(', ')}.`, color: 'success' };
+        return { text: 'The monster was defeated!', color: 'success' };
     }
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
@@ -68,7 +55,7 @@ export class Monster extends Event {
     }
 
     override eventLikelihood(game: Game): number {
-        return 2.5;
+        return 2;
     }
 
     override isStabable(): string[] {

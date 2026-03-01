@@ -7,6 +7,7 @@ export class Player {
     public inventory: Item[] = [];
     public health = 3;
     public stamina = 3;
+    public maxStamina = 3;
     public hauling = false;
     public maxHealth = 3;
     public wellFed = false;

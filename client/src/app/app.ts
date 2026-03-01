@@ -83,8 +83,8 @@ export class App {
   }
 
   protected timerPercent(): number {
-    const remaining = this.activeTimerSeconds();
-    const totalSeconds = Math.max(1, this.activeTimerTotalSeconds());
+    const remaining = Math.max(0, this.activeTimerSeconds()-3);
+    const totalSeconds = Math.max(1, this.activeTimerTotalSeconds()-3); // Subtract 3 seconds to account for the fact that the timer can show 0 for a few seconds before the event actually changes
     const percent = (remaining / totalSeconds) * 100;
     return Math.max(0, Math.min(100, percent));
   }

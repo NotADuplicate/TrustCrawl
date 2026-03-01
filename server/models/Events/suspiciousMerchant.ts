@@ -8,6 +8,7 @@ import { Tool } from '../Items/Supplies/tool';
 import { Balloon, Tea, Satchel, Club, HeavyClub, Shovel, Armor } from '../Items/Equipment';
 import { Player } from '../player';
 import { Firewood } from '../Items/Supplies/firewood';
+import { Shiv } from '../Items/Supplies/shiv';
 
 type Sale = {
     item: Item;
@@ -26,7 +27,7 @@ export class SuspiciousMerchant extends Event {
             'individual',
             players
         );
-        const numOfferings = Math.floor(Math.random() * 2) + 3;
+        const numOfferings = 4;
         this.stealPrice = Math.floor(Math.random() * 6);
         for(let i = 0; i < numOfferings; i++) {
             let newSale = this.pickItemToSell();
@@ -75,15 +76,15 @@ export class SuspiciousMerchant extends Event {
     pickItemToSell(): Sale {
         if(Math.random() < 0.5) {
             console.log('Merchant is selling supplies.');
-            const supplies = [Food, Key, Tool, Firewood];
+            const supplies = [Food, Key, Tool, Shiv];
             const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
             const item = new supplyType();
             const price = item.value * (0.7 + Math.random()*0.7);
             const quantity = supplyType === Food ? Math.floor(Math.random() * 4) + 2 : Math.floor(Math.random() * 3)+1;
-            return { item, quantity: quantity*2, price: Math.round(price * quantity) };
+            return { item, quantity: quantity*2, price: Math.max(1, Math.round(price * quantity)) };
         }
         console.log('Merchant is selling equipment.');
-        const items = [Balloon, Tea, Satchel, Club, HeavyClub, Armor, Shovel];
+        const items = [Balloon, Tea, Satchel, Club, HeavyClub, Armor, Shovel, Firewood];
         const sellable = items.filter((item) => item != null);
         const index = Math.floor(Math.random() * sellable.length);
         const itemType = sellable[index];
@@ -103,7 +104,7 @@ export class SuspiciousMerchant extends Event {
                 const hasTreasure = player.inventory.some((item) => item.name === 'Treasure');
                 return total + goldCount + (hasTreasure ? 3 : 0);
             }, 0);
-            return 1+totalGold/game.players.filter((player) => player.health > 0).length;
+            return 0.5+totalGold/game.players.filter((player) => player.health > 0).length;
         }
         return 0;
     }

@@ -70,4 +70,29 @@ describe('RestHandler', () => {
 
     vi.useRealTimers();
   });
+
+  it('sends missed rest continues through Too Slow without changing level again', () => {
+    vi.useFakeTimers();
+
+    const game = new Game(0);
+    const firstSocket = createSocket();
+    const secondSocket = createSocket();
+    const firstPlayer = game.addPlayer(firstSocket as never, 'Charlie');
+    const secondPlayer = game.addPlayer(secondSocket as never, 'Dana');
+    game.gamePlayers = game.players;
+
+    const onAllContinued = vi.fn();
+    const handler = new RestHandler(game, onAllContinued);
+
+    handler.startRest();
+    const levelAfterRestStarted = game.level;
+    handler.handleContinueVote(firstPlayer, 'left');
+    vi.advanceTimersByTime(game.getRestTimerMs());
+
+    expect(game.level).toBe(levelAfterRestStarted);
+    expect(onAllContinued).toHaveBeenCalledOnce();
+    expect(onAllContinued.mock.calls[0]?.[2]).toEqual([secondPlayer]);
+
+    vi.useRealTimers();
+  });
 });

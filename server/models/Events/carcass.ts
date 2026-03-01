@@ -14,16 +14,16 @@ export class Carcass extends Event {
                     description: 'Don\'t mess with it, leave'
                 },
                 {
-                    description: '80% chance everyone gets 2 raw meat, 20% chance that a predator is attracted and everyone takes 1 damage.',
-                    demonText: danger < 0.8 ? 'You successfully gather food.' : 'A predator is attracted!'
+                    description: '85% chance everyone gets 2 raw meat, 20% chance that a predator is attracted and everyone takes 1 damage.',
+                    demonText: danger < 0.85 ? 'You successfully gather food.' : 'A predator is attracted!'
                 },
                 {
-                    description: '60% chance everyone gets 4 raw meat, 40% chance that a predator is attracted and everyone takes 1 damage.',
-                    demonText: danger < 0.6 ? 'You successfully gather more food.' : 'A predator is attracted!'
+                    description: '70% chance everyone gets 4 raw meat, 40% chance that a predator is attracted and everyone takes 1 damage.',
+                    demonText: danger < 0.7 ? 'You successfully gather more food.' : 'A predator is attracted!'
                 },
                 {
-                    description: '40% chance everyone gets 6 raw meat, 60% chance that a predator is attracted and everyone takes 1 damage.',
-                    demonText: danger < 0.4 ? 'You successfully gather a lot of food.' : 'A predator is attracted!'
+                    description: '55% chance everyone gets 6 raw meat, 60% chance that a predator is attracted and everyone takes 1 damage.',
+                    demonText: danger < 0.55 ? 'You successfully gather a lot of food.' : 'A predator is attracted!'
                 }
             ],
             'group',
@@ -35,7 +35,7 @@ export class Carcass extends Event {
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
         if(optionNumber === 0) {
             return { text: 'You decide to leave the carcass alone and continue on your way.', color: 'info' };
-        } else if(this.danger > optionNumber * 0.2) {
+        } else if(this.danger > optionNumber * 0.15) {
             const meatGained = optionNumber * 2;
             for(const player of this.players) {
                 for(let i = 0; i < meatGained; i++) {

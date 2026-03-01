@@ -38,4 +38,8 @@ export class Shiv extends Item {
         player.removeItem(this.name);
         return `${target.name} takes 1 damage from the shiv!`;
     }
+
+    override useVerbName(): string {
+        return `Stab`;
+    }
 }

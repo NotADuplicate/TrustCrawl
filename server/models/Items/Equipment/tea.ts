@@ -11,8 +11,12 @@ export class Tea extends Item {
     }
 
     override use(game: Game, player: Player): string {
-        player.stamina = 3//player.maxStamina;
+        player.stamina = player.maxStamina;
         player.removeItem(this.name);
         return 'You feel energized and ready to take on the next challenge!';
+    }
+
+    override useVerbName(): string {
+        return `Drink`;
     }
 }

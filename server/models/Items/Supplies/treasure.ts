@@ -20,4 +20,8 @@ export class Treasure extends Item {
         player.removeItem(this.name);
         return `You sold the ${this.name} for ${this.value} gold.`;
     }
+
+    override useVerbName(): string {
+        return `Sell`;
+    }
 }

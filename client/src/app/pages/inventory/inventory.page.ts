@@ -24,6 +24,12 @@ export class InventoryPage {
     this.clearDraggedItem();
   }
 
+  protected onItemClick(itemName: string, source: 'inventory' | 'floor'): void {
+    if (source === 'floor') {
+      this.inventory.moveToInventory(itemName);
+    }
+  }
+
   protected allowDrop(event: DragEvent): void {
     event.preventDefault();
   }

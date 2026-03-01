@@ -20,6 +20,11 @@ export class Firewood extends Item {
                 player.addItem(new Food());
             }
         }
+        player.removeItem('Firewood');
         return `You cooked all the raw meat into food.`;
+    }
+
+    override useVerbName(): string {
+        return `Cook`;
     }
 }

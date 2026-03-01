@@ -7,6 +7,7 @@ export type GameItem = {
   name: string;
   description: string;
   weight: number;
+  useVerb?: string;
   usable?: boolean;
 };
 
@@ -125,22 +126,11 @@ export class InventoryService {
   }
 
   get myInventoryStacked(): StackedItem[] {
-    const items = this.myInventory;
-    const byName = new Map<string, StackedItem>();
-    for (const item of items) {
-      const existing = byName.get(item.name);
-      if (existing) {
-        existing.quantity += 1;
-        continue;
-      }
+    return this.stackItems(this.myInventory);
+  }
 
-      byName.set(item.name, {
-        ...item,
-        quantity: 1,
-      });
-    }
-
-    return Array.from(byName.values());
+  get floorItemsStacked(): StackedItem[] {
+    return this.stackItems(this.state.floorItems);
   }
 
   get myInventoryWeight(): number {
@@ -335,7 +325,25 @@ export class InventoryService {
 
   private getItemSignature(items: GameItem[]): string {
     return items
-      .map((item) => `${item.name}|${item.description}|${item.weight}|${item.usable ? '1' : '0'}`)
+      .map((item) => `${item.name}|${item.description}|${item.weight}|${item.useVerb ?? 'Use'}|${item.usable ? '1' : '0'}`)
       .join('||');
+  }
+
+  private stackItems(items: GameItem[]): StackedItem[] {
+    const byName = new Map<string, StackedItem>();
+    for (const item of items) {
+      const existing = byName.get(item.name);
+      if (existing) {
+        existing.quantity += 1;
+        continue;
+      }
+
+      byName.set(item.name, {
+        ...item,
+        quantity: 1,
+      });
+    }
+
+    return Array.from(byName.values());
   }
 }

@@ -1,20 +1,24 @@
 import { Event, EventResult } from '../event';
+import { RawMeat } from '../Items/Supplies/RawMeat';
 import { Player } from '../player';
 export class Beast extends Event {
     health: number;
     hunger: number;
+    meat: number;
     constructor(players: Player[]) {
         let health = Math.floor(Math.random() * players.length) + 1;
         let hunger = Math.floor(Math.random() * players.length*1.5) + 1;
+        let meat = Math.floor(Math.random() * players.length*2) + 1;
         super(
             'Beast',
             `A hungry beast stands in your way. Any players can attack the beast to deal a damage to it, or feed it.
             \n But if it survives and is still hungry it will deal 2 damage to ALL players.
-            \nIt has between 1 and ${players.length} health and between 1 and ${Math.floor(players.length*1.5)+1} hunger.`,
+            \nIt has between 1 and ${players.length} health and between 1 and ${Math.floor(players.length*1.5)+1} hunger.
+            \n Killing it drops between 1 and ${players.length*2} raw meat`,
             [
                 {
                     description: 'Attack the beast. Take 1 damage and deal damage',
-                    demonText: `The beast has ${health} health.`
+                    demonText: `The beast has ${health} health. It will drop ${meat} raw meat when killed.`
                 },
                 {
                     description: 'Feed the beast. Give it an amount of food.',
@@ -35,6 +39,7 @@ export class Beast extends Event {
         );
         this.health = health;
         this.hunger = hunger;
+        this.meat = meat;
     }
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
@@ -82,6 +87,7 @@ export class Beast extends Event {
             return { text: `The beast was not satisfied and attacks you all, dealing 2 damage.`, color: 'danger' };
         }
         else if(this.health <= 0) {
+            this.game!.floorItems.push(...Array.from({ length: this.meat }, () => (new RawMeat())));
             return { text: `The beast has been slain, you are safe.`, color: 'success' };
         } else {
             return { text: `The beast has been fed, it wanders off in search of its next meal.`, color: 'success' };

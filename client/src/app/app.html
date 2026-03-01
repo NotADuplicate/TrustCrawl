@@ -43,6 +43,11 @@
 	type="button"
 	(click)="goInventoryOrBack()"
 >
+	<span
+		class="inventory-button__notice"
+		*ngIf="inventory.state.hasUnseenFloorItems && !isInventoryRoute()"
+		aria-hidden="true"
+	></span>
 	{{ inventoryButtonLabel() }}
 </button>
 

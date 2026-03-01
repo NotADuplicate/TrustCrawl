@@ -27,4 +27,8 @@ export class Satchel extends Item {
      override isUsable(game: Game, player: Player): boolean {
         return true;
      }
+
+    override useVerbName(): string {
+        return `Open`;
+    }
 }

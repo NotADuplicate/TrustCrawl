@@ -10,3 +10,4 @@ export * from './carcass';
 export * from './spiders';
 export * from './suspiciousMerchant';
 export * from './giantBoar';
+export * from './cleric';

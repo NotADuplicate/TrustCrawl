@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { EventHandler } from '../server/eventhandler';
 import { Game } from '../server/game';
 import { Boss } from '../server/models/Events/boss';
+import { TooSlow } from '../server/models/Events/tooSlow';
 import { Rubble } from '../server/models/Events';
 import { beforeEach, afterEach } from 'vitest';
 
@@ -100,7 +101,25 @@ describe('EventHandler', () => {
     expect(payloads.some((payload) => payload.includes('"type":"event"'))).toBe(true);
   });
 
-  it('automatically finishes the event after the continue timer expires', () => {
+  it('automatically finishes Too Slow after its continue timer expires', () => {
+    const game = new Game(0);
+    const player = game.addPlayer(createSocket() as never, 'Charlie');
+    game.gamePlayers = game.players;
+
+    const onEventFinished = vi.fn();
+    const handler = new EventHandler(game, onEventFinished);
+    handler.startTooSlowEvent([player], onEventFinished);
+
+    const internals = handler as unknown as {
+      revealEvent: (result: { text: string; color: 'info' }) => void;
+    };
+    internals.revealEvent({ text: 'Resolved', color: 'info' });
+    vi.advanceTimersByTime(game.getEventContinueTimerMs());
+
+    expect(onEventFinished).toHaveBeenCalledOnce();
+  });
+
+  it('routes a missed event continue timer into Too Slow before the next phase', () => {
     const game = new Game(0);
     game.addPlayer(createSocket() as never, 'Charlie');
     game.gamePlayers = game.players;
@@ -110,11 +129,34 @@ describe('EventHandler', () => {
     const internals = handler as unknown as {
       currentEvent: Rubble;
       revealEvent: (result: { text: string; color: 'info' }) => void;
+      currentEventAccess: unknown;
     };
     internals.currentEvent = new Rubble(game.players);
 
     internals.revealEvent({ text: 'Resolved', color: 'info' });
     vi.advanceTimersByTime(game.getEventContinueTimerMs());
+
+    const activeEvent = (handler as unknown as { currentEvent: unknown }).currentEvent;
+    expect(activeEvent).toBeInstanceOf(TooSlow);
+    expect(onEventFinished).not.toHaveBeenCalled();
+  });
+
+  it('continues to the stored destination after Too Slow ends', () => {
+    const game = new Game(0);
+    const socket = createSocket();
+    const player = game.addPlayer(socket as never, 'Charlie');
+    game.gamePlayers = game.players;
+
+    const onEventFinished = vi.fn();
+    const handler = new EventHandler(game, onEventFinished);
+    handler.startTooSlowEvent([player], onEventFinished);
+
+    const internals = handler as unknown as {
+      revealEvent: (result: { text: string; color: 'info' }) => void;
+    };
+
+    internals.revealEvent({ text: 'Resolved', color: 'info' });
+    handler.handleEventEndContinue(player);
 
     expect(onEventFinished).toHaveBeenCalledOnce();
   });

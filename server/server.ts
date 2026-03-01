@@ -21,9 +21,16 @@ const server = http.createServer(app);
 const graceMs = Number(process.env['SOCKET_GRACE_MS'] ?? 60000);
 const game = new Game(Number.isFinite(graceMs) ? graceMs : 60000);
 let eventHandler: EventHandler;
-const restHandler = new RestHandler(game, (direction, playerName) => {
+const restHandler = new RestHandler(game, (direction, playerName, slowPlayers) => {
     console.log(`Resting choice: ${playerName} chose ${direction}.`);
     restHandler.endRest();
+    if (slowPlayers && slowPlayers.length > 0) {
+        eventHandler.startTooSlowEvent(slowPlayers, () => {
+            eventHandler.startEvent(direction);
+        });
+        return;
+    }
+
     eventHandler.startEvent(direction);
 }, () => {
     eventHandler.prepareRestPreviews();

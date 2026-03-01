@@ -21,6 +21,10 @@ export class Bandadge extends Item {
         return 'You feel energized and ready to take on the next challenge!';
     }
 
+    override useVerbName(): string {
+        return `Heal`;
+    }
+
     override useWithOption(game: Game, player: Player, option: number): string {
         const targets = game.players.filter(p => p.health >= 0);
         const index = Math.max(0, Math.min(targets.length - 1, Math.floor(option)));

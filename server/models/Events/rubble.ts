@@ -47,6 +47,6 @@ export class Rubble extends Event {
     }
 
     override eventLikelihood(game: Game): number {
-        return 4;
+        return 5;
     }
 }

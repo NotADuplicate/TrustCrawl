@@ -1,3 +1,4 @@
+import { Game } from '../../game';
 import { Event, EventResult } from '../event';
 import { Player } from '../player';
 export class Cliff extends Event {
@@ -64,5 +65,9 @@ export class Cliff extends Event {
             return { text: `${this.belayer.name} failed and everyone except them took 1 damage!`, color: 'danger' };
         }
         return { text: `${this.belayer.name} succeeded and everyone is safe!`, color: 'success' };
+    }
+
+    override eventLikelihood(game: Game): number {
+        return 2;
     }
 }
