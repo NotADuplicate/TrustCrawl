@@ -2,6 +2,7 @@ import { NgFor, NgIf } from '@angular/common';
 import { ChangeDetectorRef, Component, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { canShowAccuseButton } from './accuse-ui';
 import { EventService } from './services/event.service';
 import { InventoryService } from './services/inventory.service';
 import { RestingService } from './services/resting.service';
@@ -128,6 +129,23 @@ export class App {
 
   protected closeItemOptions(): void {
     this.inventory.clearItemOptions();
+  }
+
+  protected accusePlayer(playerName: string): void {
+    if (!this.canAccusePlayer(playerName)) {
+      return;
+    }
+
+    this.resting.accuse(playerName);
+  }
+
+  protected canAccusePlayer(playerName: string): boolean {
+    return canShowAccuseButton(
+      this.resting.state.active,
+      this.inventory.myHealth,
+      this.resting.state.accuseActive,
+      playerName,
+    );
   }
 
   protected disconnectToHome(): void {

@@ -17,6 +17,7 @@ type Sale = {
 }
 export class Merchant extends Event {
     sales: Sale[] = [];
+    private readonly soldOutOptions = new Set<number>();
     constructor(players: Player[]) {
         super(
             'Merchant',
@@ -46,6 +47,7 @@ export class Merchant extends Event {
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
         if(optionNumber === 0) return true;
+        if(this.soldOutOptions.has(optionNumber)) return false;
         const sale = this.sales[optionNumber - 1];
         const goldCount = player.inventory.filter((item) => item.name === 'Gold').length;
         const hasGold = goldCount >= sale.price;
@@ -63,7 +65,9 @@ export class Merchant extends Event {
         for(let i = 0; i < sale.quantity; i++) {
             player.addItem(sale.item);
         }
-        return { text: `You buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`, color: 'success' };
+        this.soldOutOptions.add(optionNumber);
+        this.update();
+        return { text: 'You bought the item.', color: 'success' };
     }
 
     pickItemToSell(): Sale {

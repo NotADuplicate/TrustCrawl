@@ -114,6 +114,7 @@ export class EventHandler {
         if (!this.currentEvent.isOptionAvailable(optionIndex, player)) {
             return false;
         }
+        this.currentEvent.eventHandler = this;
 
         this.votes.set(player.name, optionIndex);
         if (this.currentEvent.options[optionIndex]?.quantity) {
@@ -272,6 +273,7 @@ export class EventHandler {
         }
 
         this.currentEvent = event;
+        this.currentEvent.eventHandler = this;
         this.onCurrentEventFinished = onFinished ?? this.onEventFinished;
         this.game.currentEvent = this.currentEvent;
         this.game.broadcastGame();
@@ -400,10 +402,10 @@ export class EventHandler {
         });
     }
 
-    broadcastEvent(): void {
+    broadcastEvent(result?: EventResult): void {
         for (const [client, info] of this.game.clients.entries()) {
             if (client.readyState === client.OPEN) {
-                client.send(this.buildEventPayload(info.name));
+                client.send(this.buildEventPayload(info.name, result));
             }
         }
     }

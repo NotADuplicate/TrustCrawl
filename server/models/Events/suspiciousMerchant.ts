@@ -18,6 +18,7 @@ type Sale = {
 export class SuspiciousMerchant extends Event {
     sales: Sale[] = [];
     stealPrice: number;
+    private readonly soldOutOptions = new Set<number>();
     constructor(players: Player[]) {
         super(
             'Suspicious Merchant',
@@ -50,6 +51,7 @@ export class SuspiciousMerchant extends Event {
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
         if(optionNumber === 0) return true;
+        if(this.soldOutOptions.has(optionNumber)) return false;
         const sale = this.sales[optionNumber - 1];
         const goldCount = player.inventory.filter((item) => item.name === 'Gold').length;
         const hasGold = goldCount >= sale.price;
@@ -65,12 +67,16 @@ export class SuspiciousMerchant extends Event {
             player.removeItem('Gold');
         }
         if(sale.price >= this.stealPrice) {
+            const message = `The merchant ran off with ${sale.price} gold!`;
+            this.update(message, 'danger');
             return { text: `The merchant stole your gold and ran away!`, color: 'danger' };
         }
         for(let i = 0; i < sale.quantity; i++) {
             player.addItem(sale.item);
         }
-        return { text: `You buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`, color: 'success' };
+        this.soldOutOptions.add(optionNumber);
+        this.update();
+        return { text: 'You bought the item.', color: 'success' };
     }
 
     pickItemToSell(): Sale {

@@ -44,7 +44,7 @@ function setupSinglePlayerEvent<T>(event: T, game: Game, playerName = 'Alice') {
 }
 
 describe('Merchant events', () => {
-  it('lets a player keep buying from Merchant until they choose to leave', () => {
+  it('marks a Merchant item as sold out for everyone after one player buys it', () => {
     const game = new Game(0);
     const event = new Merchant(game.players);
     event.game = game;
@@ -54,30 +54,48 @@ describe('Merchant events', () => {
       { description: 'Buy 1 Tea(s) for 1 gold.', repeatable: true },
     ];
 
-    const { socket, player, handler, internals } = setupSinglePlayerEvent(event, game);
-    player.addItem(new Gold());
-    player.addItem(new Gold());
-    const treasure = new Treasure(3);
-    player.addItem(treasure);
+    const aliceSocket = createSocket();
+    const bobSocket = createSocket();
+    const alice = game.addPlayer(aliceSocket as never, 'Alice');
+    const bob = game.addPlayer(bobSocket as never, 'Bob');
+    game.gamePlayers = game.players;
 
+    const handler = new EventHandler(game);
+    const internals = handler as unknown as {
+      currentEvent: Merchant;
+      eventActive: boolean;
+      votes: Map<string, number>;
+      revealedPlayers: Set<string>;
+    };
+
+    internals.currentEvent = event;
+    internals.eventActive = true;
     game.currentEvent = event;
-    expect(treasure.isUsable(game, player)).toBe(true);
 
-    expect(handler.handleVote(socket as never, player, 1)).toBe(false);
+    alice.addItem(new Gold());
+    bob.addItem(new Gold());
+
+    aliceSocket.send.mockClear();
+    bobSocket.send.mockClear();
+
+    expect(handler.handleVote(aliceSocket as never, alice, 1)).toBe(false);
     expect(internals.votes.size).toBe(0);
     expect(internals.revealedPlayers.size).toBe(0);
-    expect(player.inventory.filter((item) => item.name === 'Gold')).toHaveLength(1);
-    expect(player.inventory.filter((item) => item.name === 'Tea')).toHaveLength(1);
+    expect(alice.inventory.filter((item) => item.name === 'Gold')).toHaveLength(0);
+    expect(alice.inventory.filter((item) => item.name === 'Tea')).toHaveLength(1);
+    expect(event.isOptionAvailable(1, bob)).toBe(false);
+    expect(handler.handleVote(bobSocket as never, bob, 1)).toBe(false);
+    expect(bob.inventory.filter((item) => item.name === 'Tea')).toHaveLength(0);
 
-    expect(handler.handleVote(socket as never, player, 1)).toBe(false);
-    expect(internals.votes.size).toBe(0);
-    expect(internals.revealedPlayers.size).toBe(0);
-    expect(player.inventory.filter((item) => item.name === 'Gold')).toHaveLength(0);
-    expect(player.inventory.filter((item) => item.name === 'Tea')).toHaveLength(2);
+    const alicePayload = JSON.parse(aliceSocket.send.mock.calls.at(-1)?.[0] ?? '{}');
+    const bobPayload = JSON.parse(bobSocket.send.mock.calls.at(-1)?.[0] ?? '{}');
+    expect(alicePayload.result?.text).toBe('Alice bought 1 Tea(s).');
+    expect(alicePayload.options?.[1]?.available).toBe(false);
+    expect(bobPayload.result?.text).toBe('Alice bought 1 Tea(s).');
+    expect(bobPayload.options?.[1]?.available).toBe(false);
 
-    expect(handler.handleVote(socket as never, player, 0)).toBe(true);
-    expect(internals.revealedPlayers.has(player.name)).toBe(true);
-    expect(player.inventory.filter((item) => item.name === 'Tea')).toHaveLength(2);
+    expect(handler.handleVote(aliceSocket as never, alice, 0)).toBe(false);
+    expect(internals.revealedPlayers.has(alice.name)).toBe(true);
   });
 
   it('lets a player repeat safe Suspicious Merchant purchases until a non-repeatable option ends the event', () => {
@@ -115,14 +133,14 @@ describe('Merchant events', () => {
     expect(handler.handleVote(socket as never, player, 1)).toBe(false);
     expect(internals.votes.size).toBe(0);
     expect(internals.revealedPlayers.size).toBe(0);
-    expect(player.inventory.filter((item) => item.name === 'Gold')).toHaveLength(2);
-    expect(player.inventory.filter((item) => item.name === 'Food')).toHaveLength(4);
+    expect(player.inventory.filter((item) => item.name === 'Gold')).toHaveLength(3);
+    expect(player.inventory.filter((item) => item.name === 'Food')).toHaveLength(2);
 
     expect(handler.handleVote(socket as never, player, 2)).toBe(true);
     expect(internals.revealedPlayers.has(player.name)).toBe(true);
     expect(player.inventory.filter((item) => item.name === 'Gold')).toHaveLength(0);
     expect(player.inventory.filter((item) => item.name === 'Tea')).toHaveLength(0);
-    expect(player.inventory.filter((item) => item.name === 'Food')).toHaveLength(4);
+    expect(player.inventory.filter((item) => item.name === 'Food')).toHaveLength(2);
   });
 
   it('only allows Treasure to be used during Merchant or Suspicious Merchant events', () => {

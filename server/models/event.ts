@@ -1,4 +1,5 @@
 import { Game } from "../game";
+import type { EventHandler } from "../eventhandler";
 import { Player } from "./player";
 
 export type EventOption = {
@@ -19,6 +20,7 @@ export type EventMode = 'group' | 'individual';
 export class Event {
     selections: number = 0;
     game?: Game;
+    eventHandler?: EventHandler;
     constructor(
         public title: string,
         public description: string,
@@ -29,6 +31,17 @@ export class Event {
 
     isOptionAvailable(optionNumber: number, player: Player): boolean {
         return true;
+    }
+
+    update(message?: string, color: EventResult['color'] = 'info', demonText?: string): void {
+        if (!this.eventHandler) {
+            return;
+        }
+
+        const result = message
+            ? { text: message, color, ...(demonText ? { demonText } : {}) }
+            : undefined;
+        this.eventHandler.broadcastEvent(result);
     }
 
     optionSelected(optionNumber: number, player: Player, quantity?: number, game?: Game): EventResult  {

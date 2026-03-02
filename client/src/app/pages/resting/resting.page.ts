@@ -12,7 +12,6 @@ type RestingModal =
   | 'direction'
   | 'map'
   | 'option'
-  | 'accuse'
   | 'body'
   | 'ground';
 
@@ -117,11 +116,6 @@ export class RestingPage {
     this.resting.pickTargetedSkill(index, targetName);
     this.closeModal('target');
     this.pendingTargetSkill.set(null);
-  }
-
-  protected selectAccuseTarget(targetName: string): void {
-    this.resting.accuse(targetName);
-    this.closeModal('accuse');
   }
 
   protected voteAccuse(vote: boolean): void {

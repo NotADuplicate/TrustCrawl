@@ -17,8 +17,20 @@
 		<h4>Other players</h4>
 		<ul>
 			<li *ngFor="let player of inventory.otherPlayersHealth">
-				<span>{{ player.name }}</span>
-				<span class="hp">HP {{ player.health }}</span>
+				<div class="other-player">
+					<div class="other-player__summary">
+						<span>{{ player.name }}</span>
+						<span class="hp">HP {{ player.health }}</span>
+					</div>
+					<button
+						*ngIf="canAccusePlayer(player.name)"
+						type="button"
+						class="accuse-button"
+						(click)="accusePlayer(player.name)"
+					>
+						Accuse
+					</button>
+				</div>
 			</li>
 			<li *ngIf="inventory.otherPlayersHealth.length === 0" class="empty">
 				No other players

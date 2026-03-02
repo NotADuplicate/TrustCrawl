@@ -9,14 +9,6 @@
         <button
           type="button"
           class="ghost"
-          (click)="openModal('accuse')"
-          *ngIf="inventory.myHealth < 1"
-        >
-          Accuse
-        </button>
-        <button
-          type="button"
-          class="ghost"
           (click)="continueToEvent()"
           [disabled]="resting.state.continued"
           *ngIf="resting.state.haveEaten && inventory.myHealth > 0"
@@ -229,33 +221,6 @@
     </button>
   </div>
   <button type="button" class="ghost" (click)="closeModal('option')">Cancel</button>
-</ng-template>
-
-<ng-container *ngIf="isModalOpen('accuse')">
-  <ng-container
-    [ngTemplateOutlet]="modalShell"
-    [ngTemplateOutletContext]="{
-      title: 'Accuse a player',
-      description: 'Pick someone to accuse.',
-      content: accusePromptContent
-    }"
-  ></ng-container>
-</ng-container>
-
-<ng-template #accusePromptContent>
-  <div class="modal-actions" *ngIf="inventory.otherPlayersHealth.length > 0; else noAccuseTargets">
-    <button
-      type="button"
-      *ngFor="let player of inventory.otherPlayersHealth"
-      (click)="selectAccuseTarget(player.name)"
-    >
-      {{ player.name }} (HP {{ player.health }})
-    </button>
-  </div>
-  <ng-template #noAccuseTargets>
-    <p class="empty">No other players available.</p>
-  </ng-template>
-  <button type="button" class="ghost" (click)="closeModal('accuse')">Cancel</button>
 </ng-template>
 
 <div class="modal" *ngIf="resting.state.accuseActive">

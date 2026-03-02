@@ -41,10 +41,14 @@ export class Cliff extends Event {
             return { text: 'You are slowly lowered down the cliff face...', color: 'info' };
         } else if (optionNumber === 1) {
             this.belayer = player;
+            const message = `${player.name} is the belayer. Hope they try their best...`;
+            this.update(message, 'info');
             return { text: 'You are the belayer. You try your best...', color: 'info' };
         } else {
             this.belayer = player;
             this.failure = true;
+            const message = `${player.name} is the belayer. Hope they try their best...`;
+            this.update(message, 'info');
             return { text: 'You intentionally fail to belay the others. They won\'t know you did it on purpose.', color: 'info' };
         }
     }
