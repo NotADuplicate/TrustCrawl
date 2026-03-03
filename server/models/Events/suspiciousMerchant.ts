@@ -40,9 +40,13 @@ export class SuspiciousMerchant extends Event {
         this.options = [
             {
                 description: 'Leave the merchant alone and continue on your way.',
+                selectedText: 'You leave the merchant alone and continue on your way.',
             },
             ...this.sales.map((sale) => ({
                 description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`,
+                selectedText: sale.price >= this.stealPrice
+                    ? 'The merchant stole your gold and ran away!'
+                    : 'You bought the item.',
                 demonText: sale.price >= this.stealPrice ? 'The merchant will steal your gold!' : '',
                 repeatable: sale.price < this.stealPrice
             }))
@@ -56,6 +60,21 @@ export class SuspiciousMerchant extends Event {
         const goldCount = player.inventory.filter((item) => item.name === 'Gold').length;
         const hasGold = goldCount >= sale.price;
         return hasGold;
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        if(optionNumber === 0) {
+            return undefined;
+        }
+
+        const sale = this.sales[optionNumber - 1];
+        const confidence = this.seededRandom(player, sale.item.name)/3 + 0.6; //confidence between 60% and 90%
+        if(this.seededRandom(player, '2') < confidence) { //player gets correct hint
+            const hint = sale.price >= this.stealPrice ? `The merchant will steal your gold!` : `The merchant will not steal your gold.`;
+            return hint + ` \n${Math.floor(confidence*100)}% confidence.`;
+        }
+        const hint = sale.price < this.stealPrice ? `The merchant will steal your gold!` : `The merchant will not steal your gold.`;
+        return hint + ` \n${Math.floor(confidence*100)}% confidence.`;
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {

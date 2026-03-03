@@ -9,9 +9,11 @@ export class Rubble extends Event {
             [
                 {
                     description: 'Use up a tool to clear the rubble.',
+                    selectedText: 'You used a tool to clear the rubble!',
                 },
                 {
                     description: 'Clear the rubble with your hands and take 2 damage.',
+                    selectedText: 'You cleared the rubble with your hands and took 2 damage!',
                 }
             ],
             'individual',

@@ -14,10 +14,12 @@ export class GiantBoar extends Event {
             [
                 {
                     description: 'Attack the beast. Take 2 damage and deal damage',
+                    selectedText: 'You attacked the beast!',
                     demonText: `The beast has ${health} health.`
                 },
                 {
-                    description: 'Leave it be.'
+                    description: 'Leave it be.',
+                    selectedText: 'You did nothing.',
                 }
                 ],
             'individual',
@@ -31,6 +33,17 @@ export class GiantBoar extends Event {
             return !player.wounded;
         }
         return true;
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const healthRange = this.players.length/2;
+        const minHealth = Math.floor(Math.max(2, this.health - this.seededRandom(player) * healthRange));
+        const maxHealth = Math.floor(Math.min(this.players.length+1, this.health + (1 - this.seededRandom(player)) * healthRange));
+
+        if(optionNumber === 0) {
+            return `The beast has between ${minHealth} and ${maxHealth} health.`;
+        }
+        return undefined;
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {

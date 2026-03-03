@@ -4,32 +4,32 @@ import { Skill } from './models/skill';
 import { Player } from './models/player';
 import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare, Endure } from './models/Skills';
 import { Chest } from './models/Items/chest';
-import { Key } from './models/Items/Supplies/key';
 import { Food } from './models/Items/Supplies/food';
 import { Tool } from './models/Items/Supplies/tool';
 import { Gold } from './models/Items/Supplies/gold';
-import { Shiv } from './models/Items/Supplies/shiv';
-import { Firewood } from './models/Items/Supplies/firewood';
 import { Bandadge } from './models/Items/Equipment/bandadge';
-import { Disturb, Poison } from './models/Skills/DemonSkills';
+import { Confuse, Disturb, Poison } from './models/Skills/DemonSkills';
+import { Search } from './models/Skills/Search';
+import { Investigate } from './models/Skills/Investigate';
 
 export class RestHandler {
     private readonly skillPool: Skill[] = [
-        new Scavenge(),
+        //new Scavenge(),
         new Scout(),
-        new Forage(),
-        new Haul(),
+        //new Forage(),
+        /*new Haul(),
         new Mend(),
         new Hunt(),
         new Cook(),
         new Craft(),
         new Prepare(),
         new Endure(),
+        new Search(),*/
+        new Investigate(),
     ];
 
     private readonly skillPoolDemon: Skill[] = [
-        new Disturb(),
-        new Poison(),
+        new Confuse(),
     ];
 
     private readonly playerSkills = new Map<string, Skill[]>();
@@ -302,6 +302,7 @@ export class RestHandler {
             player.scouting = 'neither';
             player.hauling = false;
             player.enduring = false;
+            player.investigating = false;
             this.getSkillsForPlayer(player.name);
             this.eatenStatus.set(player.name, false);
         }

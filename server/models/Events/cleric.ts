@@ -11,21 +11,26 @@ export class Cleric extends Event {
             [
                 {
                     description: 'Leave the cleric alone and continue on your way.',
+                    selectedText: 'You leave the cleric alone and continue on your way.',
                 },
                 {
                     description: 'Heal 1 health. 1 gold.',
+                    selectedText: 'You pay the cleric 1 gold and heal 1 health.',
                     repeatable: true
                 },
                 {
                     description: 'Increase max health by 1. 2 gold.',
+                    selectedText: 'You pay the cleric 2 gold and increase your max health by 1.',
                     repeatable: true
                 },
                 {
                     description: 'Increase max stamina by 1. 1 gold.',
+                    selectedText: 'You pay the cleric 1 gold and increase your max stamina by 1.',
                     repeatable: true
                 },
                 {
                     description: 'Sacrifice: Take 2 damage, gain 1 gold.',
+                    selectedText: 'You sacrifice your health to the cleric and gain 2 gold.',
                     repeatable: true
                 }
             ],

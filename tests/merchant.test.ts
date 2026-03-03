@@ -50,8 +50,8 @@ describe('Merchant events', () => {
     event.game = game;
     event.sales = [{ item: new Tea(), quantity: 1, price: 1 }];
     event.options = [
-      { description: 'Leave the merchant alone and continue on your way.' },
-      { description: 'Buy 1 Tea(s) for 1 gold.', repeatable: true },
+      { description: 'Leave the merchant alone and continue on your way.', selectedText: 'You leave the merchant alone and continue on your way.' },
+      { description: 'Buy 1 Tea(s) for 1 gold.', selectedText: 'You bought the item.', repeatable: true },
     ];
 
     const aliceSocket = createSocket();
@@ -89,9 +89,9 @@ describe('Merchant events', () => {
 
     const alicePayload = JSON.parse(aliceSocket.send.mock.calls.at(-1)?.[0] ?? '{}');
     const bobPayload = JSON.parse(bobSocket.send.mock.calls.at(-1)?.[0] ?? '{}');
-    expect(alicePayload.result?.text).toBe('Alice bought 1 Tea(s).');
+    expect(alicePayload.result?.text).toBe('You bought the item.');
     expect(alicePayload.options?.[1]?.available).toBe(false);
-    expect(bobPayload.result?.text).toBe('Alice bought 1 Tea(s).');
+    expect(bobPayload.result).toBeUndefined();
     expect(bobPayload.options?.[1]?.available).toBe(false);
 
     expect(handler.handleVote(aliceSocket as never, alice, 0)).toBe(false);
@@ -108,9 +108,9 @@ describe('Merchant events', () => {
       { item: new Tea(), quantity: 1, price: 3 },
     ];
     event.options = [
-      { description: 'Leave the merchant alone and continue on your way.' },
-      { description: 'Buy 2 Food(s) for 1 gold.', repeatable: true },
-      { description: 'Buy 1 Tea(s) for 3 gold.', repeatable: false, demonText: 'The merchant will steal your gold!' },
+      { description: 'Leave the merchant alone and continue on your way.', selectedText: 'You leave the merchant alone and continue on your way.' },
+      { description: 'Buy 2 Food(s) for 1 gold.', selectedText: 'You bought the item.', repeatable: true },
+      { description: 'Buy 1 Tea(s) for 3 gold.', selectedText: 'The merchant stole your gold and ran away!', repeatable: false, demonText: 'The merchant will steal your gold!' },
     ];
 
     const { socket, player, handler, internals } = setupSinglePlayerEvent(event, game);

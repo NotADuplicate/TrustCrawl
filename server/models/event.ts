@@ -4,6 +4,8 @@ import { Player } from "./player";
 
 export type EventOption = {
     description: string;
+    selectedText?: string;
+    color?: 'success' | 'danger' | 'warning' | 'info';
     demonText?: string;
     quantity?: boolean;
     repeatable?: boolean;
@@ -15,12 +17,20 @@ export type EventResult = {
     demonText?: string;
 }
 
+export type Selections = {
+    optionNumber: number;
+    player: Player;
+    quantity?: number;
+}
+
 export type EventMode = 'group' | 'individual';
 
 export class Event {
     selections: number = 0;
     game?: Game;
     eventHandler?: EventHandler;
+    trueProbability?: number;
+    public optionSelections: Selections[] = [];
     constructor(
         public title: string,
         public description: string,
@@ -52,6 +62,10 @@ export class Event {
         return 0;
     }
 
+    getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        return undefined;
+    }
+
     eventEnded(): EventResult {
         return { text: 'The event has ended.', color: 'info' };
     }
@@ -62,6 +76,28 @@ export class Event {
 
     isStabable(): string[] {
         return [];
+    }
+
+    seededRandom(player: Player, extraSeed: string = ''): number {
+        const gameLevel = this.game ? this.game.level : 0;
+        const seed = `${player.name}-${this.title}-${gameLevel}-${extraSeed}`;
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return Math.abs(hash) % 1000 / 1000;
+    }
+
+    getRandom(probability: number): boolean {
+        let attempts = 0;
+        while((this.trueProbability === undefined || Math.abs(this.trueProbability - probability) < 0.05) && attempts < 10) {
+            this.trueProbability = probability + Math.random() * probability*2 - probability;
+            if(probability > 0.5) {
+                this.trueProbability = probability + Math.random() * (1-probability)*2 - (1-probability); //add some noise to the true probability so it's not always the same for the same event
+            }
+            attempts++;
+        }
+        return Math.random() < this.trueProbability!;
     }
 
     stab(target: number): string {

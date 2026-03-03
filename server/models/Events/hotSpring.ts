@@ -11,9 +11,11 @@ export class HotSpring extends Event {
             [
                 {
                     description: 'Hop on in! Enjoy the warm water and heal 1 hp. If no one is keeping watch you will take 1 damage instead.',
+                    selectedText: 'The warm water feels soothing. Hopefully someone is keeping you safe while you relax.',
                 },
                 {
                     description: 'Stay behind and keep watch for monsters.',
+                    selectedText: 'As much as you want to relax, you stay vigilant and keep watch for monsters.',
                 }
             ],
             'individual',

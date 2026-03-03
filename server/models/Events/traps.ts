@@ -63,6 +63,16 @@ export class Traps extends Event {
         return { text: 'You picked a safe bag and got some free supplies!', color: 'success' };
     }
 
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const confidence = this.seededRandom(player, optionNumber.toString())/3 + 0.6; //confidence between 60% and 90%
+        if(this.seededRandom(player, '2') < confidence) { //player gets correct hint
+            const hint = optionNumber === this.trappedOption ? `This bag is trapped!` : `This bag is safe.`;
+            return hint + ` \n${Math.floor(confidence*100)}% confidence.`;
+        }
+        const hint = optionNumber !== this.trappedOption ? `This bag is trapped!` : `This bag is safe.`;
+        return hint + ` \n${Math.floor(confidence*100)}% confidence.`;
+    }
+
     generateBag(): Item[] {
         const bagContents: Item[] = [];
         const supplyList = [

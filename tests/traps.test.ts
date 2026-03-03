@@ -53,10 +53,10 @@ describe('Traps event', () => {
     event.trappedOption = 2;
     event.bags = [[new Food()], [new Tool()], []];
     event.options = [
-      { description: 'Bag 1', repeatable: true },
-      { description: 'Bag 2', repeatable: true },
-      { description: 'Bag 3', repeatable: false },
-      { description: 'Leave' },
+      { description: 'Bag 1', selectedText: 'You picked a safe bag and got some free supplies!', repeatable: true },
+      { description: 'Bag 2', selectedText: 'You picked a safe bag and got some free supplies!', repeatable: true },
+      { description: 'Bag 3', selectedText: 'Oh no! The bag was trapped and you took 1 damage.', repeatable: false },
+      { description: 'Leave', selectedText: 'You leave the bags alone and move on.' },
     ];
 
     const handler = new EventHandler(game);
@@ -103,10 +103,10 @@ describe('Traps event', () => {
     event.trappedOption = 1;
     event.bags = [[new Food()], [], [new Tool()]];
     event.options = [
-      { description: 'Bag 1', repeatable: true },
-      { description: 'Bag 2', repeatable: false },
-      { description: 'Bag 3', repeatable: true },
-      { description: 'Leave' },
+      { description: 'Bag 1', selectedText: 'You picked a safe bag and got some free supplies!', repeatable: true },
+      { description: 'Bag 2', selectedText: 'Oh no! The bag was trapped and you took 1 damage.', repeatable: false },
+      { description: 'Bag 3', selectedText: 'You picked a safe bag and got some free supplies!', repeatable: true },
+      { description: 'Leave', selectedText: 'You leave the bags alone and move on.' },
     ];
 
     const handler = new EventHandler(game);

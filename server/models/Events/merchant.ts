@@ -37,9 +37,11 @@ export class Merchant extends Event {
         this.options = [
             {
                 description: 'Leave the merchant alone and continue on your way.',
+                selectedText: 'You leave the merchant alone and continue on your way.',
             },
             ...this.sales.map((sale) => ({
                 description: `Buy ${sale.quantity} ${sale.item.name}(s) for ${sale.price} gold.`,
+                selectedText: 'You bought the item.',
                 repeatable: true
             }))
         ]   

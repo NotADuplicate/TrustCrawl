@@ -4,24 +4,23 @@ import { Player } from '../player';
 export class Chasm extends Event {
     willCollapse: boolean
     constructor(players: Player[]) {
-        const willCollapse = Math.random() < 1/3;
         super(
             'Chasm',
             `A wide chasm with a flimsy rope bridge stands in your path.
             \nWhich path will your group take?`,
             [
                 {
-                    description: 'Descend and climb back up the rough cliff face. All players take 1 damage.'
+                    description: 'Descend and climb back up the rough cliff face. All players take 1 damage.',
                 },
                 {
                     description: 'Try crossing the bridge and hope it supports your weight. 1/3rd chance that all players take 2 damage.',
-                    demonText: willCollapse ? 'The bridge will collapse' : 'The bridge will support the weight.'
                 }
             ],
             'group',
             players
         );
-        this.willCollapse = willCollapse;
+        this.willCollapse = this.getRandom(1/3);
+        this.options[1].demonText = this.willCollapse ? 'The bridge will collapse!' : 'The bridge will hold!';
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {
@@ -37,6 +36,13 @@ export class Chasm extends Event {
             return { text: 'The bridge collapsed, and all players took 2 damage.', color: 'danger' };
         }
         return { text: 'You crossed the bridge safely.', color: 'success' };
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        if(optionNumber === 1) {
+            return `There is a ${Math.floor((this.trueProbability ?? 1/3)*100)}% chance that the bridge will collapse.`;
+        }
+        return undefined;
     }
 
     override eventLikelihood(game: Game): number {

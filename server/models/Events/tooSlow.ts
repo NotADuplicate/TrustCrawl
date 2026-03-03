@@ -5,10 +5,10 @@ export class TooSlow extends Event {
     health: number;
     constructor(players: Player[], slowPlayers: Player[]) {
         let health = Math.floor(Math.random() * players.length) + 1;
-        const slowNames = slowPlayers.map((player) => player.name).join(', ');
+        const slowNames = slowPlayers.map((player) => player.name).join('\n');
         let description = `A monster has caught up to you because following players failed to continue in time: ${slowNames}.\nAny players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.\nIt has between 1 and ${players.length} health.`;
         if(slowPlayers.length === 1) {
-            description = `A monster has caught up to you because ${slowNames} failed to continue in time.\nAny players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.\nIt has between 1 and ${players.length} health.`;
+            description = `A monster has caught up to you because the following player failed to continue in time:\n${slowNames}.\nAny players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.\nIt has between 1 and ${players.length} health.`;
         }
         super(
             'Too Slow!',
@@ -16,10 +16,12 @@ export class TooSlow extends Event {
             [
                 {
                     description: 'Attack the monster. Take 1 damage and deal damage',
+                    selectedText: 'You attacked the monster!',
                     demonText: `The monster has ${health} health.`
                 },
                 {
                     description: 'Wait around, if the monster is not killed by other players, you will take 1 damage.',
+                    selectedText: 'You did nothing.',
                 }
             ],
             'individual',

@@ -4,20 +4,19 @@ import { Player } from '../player';
 export class GamblingGround extends Event {
     willDouble: boolean
     constructor(players: Player[]) {
-        const willDouble = Math.random() < 0.6;
         super(
             'Gambling Ground',
             `When this event ends, any items on the ground have a 60% chance of doubling, otherwise they disappear.`,
             [
                 {
                     description: 'Ready',
-                    demonText: willDouble ? 'The items will double!' : 'The items will disappear!'
                 }
             ],
             'group',
             players
         );
-        this.willDouble = willDouble;
+        this.willDouble = this.getRandom(0.6);
+        this.options[0].demonText = this.willDouble ? 'The items will double!' : 'The items will disappear!';
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number, game?: Game): EventResult {
@@ -33,6 +32,10 @@ export class GamblingGround extends Event {
             this.game!.floorItems = [];
             return { text: 'The items on the ground have disappeared!', color: 'danger' };
         }
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        return `There is a ${Math.floor((this.trueProbability ?? 0.6)*100)}% chance that the items will double.`;
     }
 
     override eventLikelihood(game: Game): number {

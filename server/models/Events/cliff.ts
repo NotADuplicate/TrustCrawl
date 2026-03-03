@@ -5,26 +5,28 @@ export class Cliff extends Event {
     failure: boolean;
     belayer: Player | null = null;
     constructor(players: Player[]) {
-        let failure = Math.random() < 0.15;
         super(
             'Cliff Face',
             `Exactly one player must belay the others down the cliff face.\n The belayer is probably strong enough to hold everyone... if they are trustworthy.`,
             [
                 {
                     description: 'Climb down the cliff face. If you fall you will take 1 damage. Hope you trust your belayer.',
+                    selectedText: 'You are slowly lowered down the cliff face...',
                 },
                 {
                     description: 'Try your best to belay the others. 15% chance of failure.',
-                    demonText: failure ? 'This will fail.' : 'This will succeed.'
+                    selectedText: 'You are the belayer. You try your best...',
                 },
                 {
                     description: 'Intentionally fail to belay the others. They won\'t know you did it on purpose.',
+                    selectedText: 'You intentionally fail to belay the others. They won\'t know you did it on purpose.',
                 }
             ],
             'individual',
             players
         );
-        this.failure = failure;
+        this.failure = this.getRandom(0.15)
+        this.options[1].demonText = this.failure ? 'This will fail.' : 'This will succeed.';
     }
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
@@ -69,6 +71,13 @@ export class Cliff extends Event {
             return { text: `${this.belayer.name} failed and everyone except them took 1 damage!`, color: 'danger' };
         }
         return { text: `${this.belayer.name} succeeded and everyone is safe!`, color: 'success' };
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        if(optionNumber === 1) {
+            return `There is a ${Math.floor((this.trueProbability ?? 0.15)*100)}% chance that the belaying will fail.`;
+        }
+        return undefined;
     }
 
     override eventLikelihood(game: Game): number {

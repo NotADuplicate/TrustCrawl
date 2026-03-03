@@ -1,6 +1,6 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-export class Mend extends Skill {
+export class Search extends Skill {
     constructor() {
         super(
             'Search',

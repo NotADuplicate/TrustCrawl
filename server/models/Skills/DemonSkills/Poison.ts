@@ -5,8 +5,7 @@ export class Poison extends Skill {
     constructor() {
         super(
             'Poison',
-            `Poison 1 food item in your inventory. Other players cannot tell it is poisoned.
-            \nPoisoned food will deal 1 damage when consumed.`
+            `Poison 1 food item in your inventory.`
         );
     }
 

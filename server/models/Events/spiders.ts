@@ -25,14 +25,17 @@ export class Spiders extends Event {
             [
                 {
                     description: 'Attack the spider guarding the food. Take 1 damage and deal damage',
+                    selectedText: 'You attacked the first spider!',
                     demonText: `The first spider has ${health1} health and guards ${foodAmount} food.`
                 },
                 {
                     description: 'Attack the spider guarding the gold. Take 1 damage and deal damage',
+                    selectedText: 'You attacked the second spider!',
                     demonText: `The second spider has ${health2} health and guards ${goldAmount} gold.`
                 },
                 {
                     description: 'Try to walk around them. 1/3rd chance you get attacked anyways and take 1 damage.',
+                    selectedText: `You try to walk around the spiders!`,
                     demonText: willDamage ? 'The spiders will attack!' : 'They will not attack.'
                 }
                 ],
@@ -95,6 +98,28 @@ export class Spiders extends Event {
 
     override isStabable(): string[] {
         return ['Gold Spider', 'Food Spider'];
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const healthRange = (this.players.length/2)-1;
+
+        if(optionNumber === 0) {
+            const minHealth1 = 1 + Math.floor(Math.max(0, this.health1 - this.seededRandom(player) * healthRange));
+            const maxHealth1 = 1 + Math.floor(Math.min(this.players.length-2, this.health1 + (1 - this.seededRandom(player)) * healthRange));
+            const foodRange = this.players.length;
+            const minFood = Math.floor(Math.max(1, this.foodAmount - this.seededRandom(player,'food') * foodRange));
+            const maxFood = Math.floor(Math.min(this.players.length*2, this.foodAmount + (1 - this.seededRandom(player,'food')) * foodRange));
+            return `It has between ${minHealth1} and ${maxHealth1} health. It guards between ${minFood} and ${maxFood} food.`;
+        }
+        if(optionNumber === 1) {
+            const minHealth2 = 1 + Math.floor(Math.max(0, this.health2 - this.seededRandom(player,'1') * healthRange));
+            const maxHealth2 = 1 + Math.floor(Math.min(this.players.length-2, this.health2 + (1 - this.seededRandom(player,'1')) * healthRange));
+            const goldRange = this.players.length/2;
+            const minGold = Math.floor(Math.max(1, this.goldAmount - this.seededRandom(player,'gold') * goldRange));
+            const maxGold = Math.floor(Math.min(this.players.length, this.goldAmount + (1 - this.seededRandom(player,'gold')) * goldRange));
+            return `It has between ${minHealth2} and ${maxHealth2} health. It guards between ${minGold} and ${maxGold} gold.`;
+        }
+        return undefined;
     }
 
     override stab(target: number): string {

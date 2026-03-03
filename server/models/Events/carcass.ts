@@ -11,7 +11,7 @@ export class Carcass extends Event {
             `The giant body of a felled beast. It looks like it could be a good source of food, but it also looks like it could attract predators.`,
             [
                 {
-                    description: 'Don\'t mess with it, leave'
+                    description: 'Don\'t mess with it, leave',
                 },
                 {
                     description: '85% chance everyone gets 2 raw meat, 20% chance that a predator is attracted and everyone takes 1 damage.',
@@ -48,6 +48,17 @@ export class Carcass extends Event {
                 player.damage(1);
             }
             return { text: 'A predator is attracted to the carcass and attacks, dealing 1 damage to each player.', color: 'danger' };
+        }
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const knownDanger = this.danger + this.seededRandom(player)/3 - 0.15; //player's guess is within 15% of the actual danger
+        if(knownDanger+0.15 < optionNumber * 0.15) {
+            return `This is definitely safe.`;
+        } else if(knownDanger-0.15 > optionNumber * 0.15) {
+            return `This is definitely dangerous.`;
+        } else {
+            return `This is uncertain.`;
         }
     }
 

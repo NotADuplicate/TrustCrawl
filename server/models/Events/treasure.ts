@@ -41,4 +41,14 @@ export class Treasure extends Event {
     override eventLikelihood(game: Game): number {
         return game.level < 7 ? 1.5 : 0
     }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        if(optionNumber === 1) {
+            const valueRange = this.players.length;
+            const minValue = Math.floor(Math.max(1, this.treasureValue - this.seededRandom(player) * valueRange));
+            const maxValue = Math.floor(Math.min(this.treasureValue + (1-this.seededRandom(player)) * valueRange, this.players.length*3));
+            return `The treasure is worth between ${minValue} and ${maxValue} gold.`;
+        }
+        return undefined;
+    }
 }

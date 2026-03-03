@@ -22,10 +22,12 @@ export class Monster extends Event {
             [
                 {
                     description: 'Attack the monster. Take 1 damage and deal damage',
+                    selectedText: 'You attacked the monster!',
                     demonText: `The monster has ${health} health. It will drop ${treasureAmount} items when killed.`
                 },
                 {
                     description: 'Wait around, if the monster is not killed by other players, you will take 1 damage.',
+                    selectedText: 'You did nothing.',
                 }
             ],
             'individual',
@@ -42,6 +44,17 @@ export class Monster extends Event {
             return { text: 'You attacked the monster!', color: 'info' };
         }
         return { text: 'You did nothing.', color: 'info' };
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const healthRange = this.players.length/2;
+        const minHealth = Math.floor(Math.max(2, this.health - this.seededRandom(player) * healthRange));
+        const maxHealth = Math.floor(Math.min(this.players.length+1, this.health + (1 - this.seededRandom(player)) * healthRange));
+
+        if(optionNumber === 0) {
+            return `The beast has between ${minHealth} and ${maxHealth} health. It will drop ${this.treasureAmount} items when killed.`;
+        }
+        return undefined;
     }
 
     override eventEnded(): EventResult {

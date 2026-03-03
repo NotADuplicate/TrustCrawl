@@ -18,20 +18,24 @@ export class Beast extends Event {
             [
                 {
                     description: 'Attack the beast. Take 1 damage and deal damage',
+                    selectedText: 'You attacked the beast!',
                     demonText: `The beast has ${health} health. It will drop ${meat} raw meat when killed.`
                 },
                 {
                     description: 'Feed the beast. Give it an amount of food.',
+                    selectedText: 'You fed the beast food!',
                     demonText: `The beast has ${hunger} hunger.`,
                     quantity: true
                 },
                 {
                     description: 'Feed the beast. Give it an amount of raw meat.',
+                    selectedText: 'You fed the beast raw meat!',
                     demonText: `The beast has ${hunger} hunger.`,
                     quantity: true
                 },
                 {
                     description: 'Wait around, if the beast is not killed or fed by other players, you will take 2 damage.',
+                    selectedText: 'You did nothing.',
                 }
             ],
             'individual',
@@ -47,6 +51,25 @@ export class Beast extends Event {
             return !player.wounded;
         }
         return true;
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const healthRange = this.players.length/2;
+        const hungerRange = this.players.length*0.75;
+        const meatRange = this.players.length;
+        const minHealth = Math.floor(Math.max(1, this.health - this.seededRandom(player) * healthRange));
+        const maxHealth = Math.floor(Math.min(this.players.length, this.health + (1 - this.seededRandom(player)) * healthRange));
+        const minHunger = Math.floor(Math.max(1, this.hunger - this.seededRandom(player) * hungerRange));
+        const maxHunger = Math.floor(Math.min(this.players.length*1.5, this.hunger + (1 - this.seededRandom(player)) * hungerRange));
+        const minMeat = Math.floor(Math.max(1, this.meat - this.seededRandom(player) * meatRange));
+        const maxMeat = Math.floor(Math.min(this.players.length*2, this.meat + (1 - this.seededRandom(player)) * meatRange));
+
+        if(optionNumber === 0) {
+            return `The beast has between ${minHealth} and ${maxHealth} health. It will drop between ${minMeat} and ${maxMeat} raw meat when killed.`;
+        } else if(optionNumber === 1 || optionNumber === 2) {
+            return `The beast looks very hungry, it has between ${minHunger} and ${maxHunger} hunger.`;
+        }
+        return undefined;
     }
 
     override optionSelected(optionNumber: number, player: Player, quantity?: number): EventResult {

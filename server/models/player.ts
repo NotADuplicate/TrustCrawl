@@ -20,6 +20,8 @@ export class Player {
     public preppedSkill: Skill | null = null;
     public isDemon = false;
     public disturbed = false;
+    public confused = false;
+    public investigating = false;
 
     constructor(public name: string, game: Game) {
         this.game = game;

@@ -15,13 +15,16 @@ export class Boss extends Event {
             [
                 {
                     description: 'Attack the monster. Take 2 damage and deal damage',
+                    selectedText: 'You attacked the monster!',
                     demonText: `The monster has ${health} health.`
                 },
                 {
                     description: 'Scare it off. This guarantees that the boss will leave, but it will be waiting for you 2 floors later.',
+                    selectedText: 'You scared the monster off! It will be waiting for you 2 floors later...',
                 },
                 {
-                    description: 'Do nothing.'
+                    description: 'Do nothing.',
+                    selectedText: 'You did nothing.',
                 }
             ],
             'individual',
@@ -42,6 +45,17 @@ export class Boss extends Event {
         }
 
         return { text: 'You did nothing.', color: 'info' };
+    }
+
+    override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
+        const healthRange = this.players.length/2;
+        const minHealth = this.players.length + Math.floor(Math.max(0, this.health - this.seededRandom(player) * healthRange));
+        const maxHealth = this.players.length + Math.floor(Math.min(this.players.length, this.health + (1 - this.seededRandom(player)) * healthRange));
+
+        if(optionNumber === 0) {
+            return `The beast has between ${minHealth} and ${maxHealth} health.`;
+        }
+        return undefined;
     }
 
     override eventEnded(): EventResult {

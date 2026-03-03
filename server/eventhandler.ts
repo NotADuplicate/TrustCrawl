@@ -124,7 +124,11 @@ export class EventHandler {
 
         if (this.currentEvent.mode === 'individual') {
             const option = this.currentEvent.options[optionIndex];
-            const result = this.currentEvent.optionSelected(optionIndex, player, quantity);
+            this.currentEvent.optionSelections.push({ optionNumber: optionIndex, player, quantity });
+            const result = {
+                text: this.currentEvent.options[optionIndex]?.selectedText ?? '',
+                color: this.currentEvent.options[optionIndex]?.color ?? 'info'
+            };
             if (option?.repeatable) {
                 this.votes.delete(player.name);
                 this.sendEventTo(socket, result);
@@ -134,6 +138,22 @@ export class EventHandler {
             this.revealedPlayers.add(player.name);
             this.sendEventTo(socket, result);
             if (this.revealedPlayers.size >= this.game.players.filter(p => p.health>0).length) {
+                for(const selection of this.currentEvent.optionSelections) {
+                    const optionIndex = selection.optionNumber;
+                    const player = selection.player;
+                    if(player.confused) {
+                        const availableOptions = this.currentEvent.options.map((_, index) => this.currentEvent.isOptionAvailable(index, player) ? index : null).filter(index => index !== null) as number[];
+                        const randomIndex = availableOptions[Math.floor(Math.random() * availableOptions.length)];
+                        this.currentEvent.optionSelected(randomIndex, player, selection.quantity, this.game);
+                        this.game.sendModal(
+                            'Confused!',
+                            `You were confused and picked and picked a random choice!`,
+                            player
+                        );
+                    } else {
+                        this.currentEvent.optionSelected(optionIndex, player, selection.quantity, this.game);
+                    }
+                }
                 const endResult = this.currentEvent.eventEnded();
                 this.revealEvent(endResult);
                 return true;
@@ -333,7 +353,7 @@ export class EventHandler {
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? this.currentEvent.optionQuantityMax(index, player) : undefined,
                 repeatable: option.repeatable ?? false,
-                ...(isDemon && option.demonText ? { demonText: option.demonText } : {}),
+                ...(isDemon && option.demonText ? { demonText: option.demonText } : player?.investigating ? { demonText: this.currentEvent.getOptionInvestigationText(index, player) } : {}),
             })),
             mode: this.currentEvent.mode,
             totalSeconds: Math.ceil(this.activeTimerMs / 1000),
