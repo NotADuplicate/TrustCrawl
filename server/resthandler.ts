@@ -11,6 +11,7 @@ import { Gold } from './models/Items/Supplies/gold';
 import { Shiv } from './models/Items/Supplies/shiv';
 import { Firewood } from './models/Items/Supplies/firewood';
 import { Bandadge } from './models/Items/Equipment/bandadge';
+import { Disturb, Poison } from './models/Skills/DemonSkills';
 
 export class RestHandler {
     private readonly skillPool: Skill[] = [
@@ -26,10 +27,16 @@ export class RestHandler {
         new Endure(),
     ];
 
+    private readonly skillPoolDemon: Skill[] = [
+        new Disturb(),
+        new Poison(),
+    ];
+
     private readonly playerSkills = new Map<string, Skill[]>();
     private readonly selectedSkills = new Map<string, number[]>();
     private readonly skillTexts = new Map<string, string>();
     private readonly eatenStatus = new Map<string, boolean>();
+    private readonly campVotes = new Set<string>();
     private readonly continueVotes = new Map<string, 'left' | 'right'>();
     private readonly accuseVotes = new Map<string, boolean>();
     private currentAccuse: { accuser: string; accused: string } | null = null;
@@ -54,6 +61,7 @@ export class RestHandler {
         this.selectedSkills.clear();
         this.skillTexts.clear();
         this.eatenStatus.clear();
+        this.campVotes.clear();
         this.continueVotes.clear();
         this.accuseVotes.clear();
         this.currentAccuse = null;
@@ -69,6 +77,7 @@ export class RestHandler {
         this.selectedSkills.clear();
         this.skillTexts.clear();
         this.eatenStatus.clear();
+        this.campVotes.clear();
         this.continueVotes.clear();
         this.accuseVotes.clear();
         this.currentAccuse = null;
@@ -86,11 +95,25 @@ export class RestHandler {
         this.selectedSkills.delete(player.name);
         this.skillTexts.delete(player.name);
         this.eatenStatus.delete(player.name);
+        this.campVotes.delete(player.name);
         this.continueVotes.delete(player.name);
         this.accuseVotes.delete(player.name);
+        if (this.restActive && this.isCampReady()) {
+            this.broadcastRest();
+        }
+    }
+
+    handleCamp(player: Player): void {
+        if (!this.restActive || player.health < 0 || this.eatenStatus.get(player.name)) {
+            return;
+        }
+
+        this.campVotes.add(player.name);
+        this.broadcastRest();
     }
 
     handleAccuse(player: Player, targetName: string): void {
+        console.log(`${player.name} is accusing ${targetName}`);
         if (!this.restActive || player.health < 0) {
             return;
         }
@@ -111,15 +134,17 @@ export class RestHandler {
     }
 
     handleAccuseVote(player: Player, vote: boolean): void {
+        console.log(`${player.name} voted ${vote ? 'Yes' : 'No'} on the accusation.`);
         if (!this.currentAccuse || player.health < 0) {
             return;
         }
 
         this.accuseVotes.set(player.name, vote);
-        if (this.accuseVotes.size < this.game.players.filter(p => p.health>0).length) {
+        if (this.accuseVotes.size < this.game.players.filter(p => p.health >= 0).length) {
             return;
         }
 
+        console.log('All votes are in. Resolving accusation...');
         const yesVotes = Array.from(this.accuseVotes.values()).filter((value) => value).length;
         const noVotes = this.accuseVotes.size - yesVotes;
         const accused = this.currentAccuse.accused;
@@ -131,7 +156,15 @@ export class RestHandler {
         }
         this.accuseVotes.clear();
         this.currentAccuse = null;
-        this.broadcastAccuseResult(accused, yesVotes, noVotes);
+        this.broadcastRest();
+        const killed = yesVotes > noVotes;
+        this.game.sendModal(
+            'Accusation Result',
+            killed ? `${accused} was killed.` : `${accused} survived the accusation.`,
+        );
+        if (killed) {
+            this.game.broadcastGame();
+        }
     }
 
     handleContinueVote(player: Player, direction: 'left' | 'right'): void {
@@ -140,7 +173,7 @@ export class RestHandler {
         }
 
         this.continueVotes.set(player.name, direction);
-        if (this.continueVotes.size < this.game.players.filter(p => p.health>0).length) {
+        if (this.continueVotes.size < this.game.players.filter(p => p.health > 0).length) {
             return;
         }
 
@@ -185,7 +218,7 @@ export class RestHandler {
             }
         }
 
-        if(!this.selectedSkills.has(player.name)) {
+        if (!this.selectedSkills.has(player.name)) {
             this.selectedSkills.set(player.name, []);
         }
         this.selectedSkills.get(player.name)!.push(optionIndex);
@@ -196,9 +229,14 @@ export class RestHandler {
         if (!this.restActive || player.health < 0) {
             return;
         }
-        if(player.sleeping) {
-            player.stamina = player.maxStamina;
+        if (player.sleeping) {
+            if(player.disturbed) {
+                this.game.sendModal('Sleep Disturbed', 'Your rest was disturbed! You do not regain stamina this turn.', player);
+            } else {
+                player.stamina = player.maxStamina;
+            }
         }
+        player.disturbed = false;
 
         const foodToEat = Math.max(0, Math.min(2, Math.floor(amount)));
         this.eatenStatus.set(player.name, true);
@@ -218,7 +256,7 @@ export class RestHandler {
         }
 
         if (eaten === 2) {
-            if(player.wellFed) {
+            if (player.wellFed) {
                 player.heal(1);
             }
             player.wellFed = true;
@@ -229,7 +267,7 @@ export class RestHandler {
 
     findItem(): void {
         console.log('Finding item for rest phase.');
-        if(Math.random() < 0.5) {
+        if (Math.random() < 0.5) {
             const value = Math.round(Math.random() * 7) + 1;
             const chest = new Chest(value);
             this.game.floorItems.push(chest);
@@ -243,7 +281,7 @@ export class RestHandler {
 
     startRest(): void {
         console.log('Starting rest phase.');
-        if (this.game.players.filter(p => p.health>0).length === 0) {
+        if (this.game.players.filter(p => p.health > 0).length === 0) {
             return;
         }
 
@@ -252,6 +290,7 @@ export class RestHandler {
         this.selectedSkills.clear();
         this.skillTexts.clear();
         this.eatenStatus.clear();
+        this.campVotes.clear();
         this.continueVotes.clear();
         this.accuseVotes.clear();
         this.currentAccuse = null;
@@ -305,6 +344,7 @@ export class RestHandler {
 
     private buildRestPayload(player: Player): string {
         const skills = player.health > 0 ? this.getSkillsForPlayer(player.name) ?? [] : [];
+        const canReceivePrompts = player.health >= 0;
         return JSON.stringify({
             type: 'rest' as const,
             title: 'Resting',
@@ -313,9 +353,12 @@ export class RestHandler {
                 description: skill.description,
                 targeted: skill.targeted,
                 options: skill.options,
+                demon: this.skillPoolDemon.some((demonSkill) => demonSkill.name === skill.name),
             })),
             selectedSkills: this.selectedSkills.get(player.name) ?? [],
             skillText: this.skillTexts.get(player.name) ?? null,
+            camped: canReceivePrompts && this.campVotes.has(player.name),
+            campReady: canReceivePrompts && this.isCampReady(),
             haveEaten: this.eatenStatus.get(player.name) ?? false,
             hauling: player.hauling,
             scouting: player.scouting,
@@ -330,9 +373,12 @@ export class RestHandler {
             return existing;
         }
         const player = this.game.players.find((p) => p.name === playerName);
-        
 
         const picks = this.pickSkills(2);
+        if (player?.isDemon) {
+            const demonPickIndex = Math.floor(Math.random() * this.skillPoolDemon.length);
+            picks[2] = this.skillPoolDemon[demonPickIndex];
+        }
         if (player?.preppedSkill) {
             if (!picks.some((s) => s.name === player.preppedSkill!.name)) {
                 picks[0] = player.preppedSkill;
@@ -341,6 +387,10 @@ export class RestHandler {
         }
         this.playerSkills.set(playerName, picks);
         return picks;
+    }
+
+    private isCampReady(): boolean {
+        return this.campVotes.size >= this.game.players.filter((player) => player.health >= 0).length;
     }
 
     public pickSkills(count: number): Skill[] {
@@ -482,8 +532,8 @@ export class RestHandler {
             return;
         }
 
-        for (const client of this.game.clients.keys()) {
-            if (client.readyState === client.OPEN) {
+        for (const [client, player] of this.game.clients.entries()) {
+            if (client.readyState === client.OPEN && player.health >= 0) {
                 client.send(JSON.stringify({
                     type: 'accuse',
                     accuser: this.currentAccuse.accuser,
@@ -493,16 +543,4 @@ export class RestHandler {
         }
     }
 
-    private broadcastAccuseResult(accused: string, yesVotes: number, noVotes: number): void {
-        for (const client of this.game.clients.keys()) {
-            if (client.readyState === client.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'accuse:result',
-                    accused,
-                    yesVotes,
-                    noVotes,
-                }));
-            }
-        }
-    }
 }

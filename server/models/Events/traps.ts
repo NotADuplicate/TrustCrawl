@@ -6,6 +6,7 @@ import { Bandadge } from '../Items/Equipment/bandadge';
 import { Food } from '../Items/Supplies/food';
 import { Gold } from '../Items/Supplies/gold';
 import { Key } from '../Items/Supplies/key';
+import { Shiv } from '../Items/Supplies/shiv';
 import { Tool } from '../Items/Supplies/tool';
 import { Player } from '../player';
 export class Traps extends Event {
@@ -71,6 +72,7 @@ export class Traps extends Event {
             new Tea(),
             new Gold(),
             new Key(),
+            new Shiv()
         ];
         let bagValue = 0.75 + Math.random();
         while(bagValue > 0.2) {

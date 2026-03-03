@@ -164,8 +164,10 @@ export class Game {
             player.addItem(new Tool());
         }
 
-        if(this.players.length > 3 || (this.players.length === 2 && Math.random() < 0.3) || (this.players.length === 3 && Math.random() < 0.6)) {
-           this.demonName = this.players[Math.floor(Math.random() * this.players.length)]?.name ?? null;
+        if(this.players.length > 3 || (this.players.length === 2 && Math.random() < 1.3) || (this.players.length === 3 && Math.random() < 0.6)) {
+            const demonIndex = Math.floor(Math.random() * this.players.length);
+           this.demonName = this.players[demonIndex]?.name ?? null;
+           this.players[demonIndex].isDemon = true;
         }
         this.floorItems = [];
         this.broadcastState();
@@ -253,6 +255,24 @@ export class Game {
         }
 
         client.send(payload);
+    }
+
+    sendModal(title: string, description: string, player?: Player): void {
+        for (const client of this.clients.keys()) {
+            if (client.readyState === client.OPEN) {
+                if (player) {
+                    const info = this.clients.get(client);
+                    if (info?.name !== player.name) {
+                        continue;
+                    }
+                }
+                client.send(JSON.stringify({
+                    type: 'modal',
+                    title,
+                    description,
+                }));
+            }
+        }
     }
 
     moveToFloor(player: Player, itemName: string): boolean {

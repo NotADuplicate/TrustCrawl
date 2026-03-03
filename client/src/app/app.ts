@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { canShowAccuseButton } from './accuse-ui';
 import { EventService } from './services/event.service';
 import { InventoryService } from './services/inventory.service';
+import { ModalService } from './services/modal.service';
 import { RestingService } from './services/resting.service';
 import { SocketService } from './services/socket.service';
 
@@ -23,6 +24,7 @@ export class App {
     protected readonly inventory: InventoryService,
     protected readonly event: EventService,
     protected readonly resting: RestingService,
+    protected readonly modal: ModalService,
     private readonly socket: SocketService,
     private readonly cdr: ChangeDetectorRef,
     router: Router,
@@ -31,6 +33,7 @@ export class App {
     this.socket.registerChangeDetector(this.cdr);
     this.event.registerChangeDetector(this.cdr);
     this.resting.registerChangeDetector(this.cdr);
+    this.modal.registerChangeDetector(this.cdr);
     router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
@@ -154,5 +157,9 @@ export class App {
       localStorage.clear();
     }
     this.router.navigateByUrl('/');
+  }
+
+  protected dismissModal(): void {
+    this.modal.dismiss();
   }
 }

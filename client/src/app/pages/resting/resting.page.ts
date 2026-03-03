@@ -32,6 +32,11 @@ export class RestingPage {
   protected readonly pendingBodyItemName = signal<string | null>(null);
 
   constructor() {
+    this.resting.onNewRest(() => {
+      if (this.inventory.myHealth >= 0 && this.resting.state.campReady && !this.resting.state.haveEaten) {
+        this.openModal('eat');
+      }
+    });
     this.resting.requestResting();
   }
 
@@ -72,6 +77,15 @@ export class RestingPage {
     this.resting.eatFood(amount);
     this.closeModal('eat');
     this.resting.requestResting();
+  }
+
+  protected camp(): void {
+    if (this.resting.state.campReady && !this.resting.state.haveEaten) {
+      this.openModal('eat');
+      return;
+    }
+
+    this.resting.camp();
   }
 
   protected continueToEvent(): void {

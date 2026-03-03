@@ -18,6 +18,8 @@ export class Player {
     public wounded = false;
     public dead = false;
     public preppedSkill: Skill | null = null;
+    public isDemon = false;
+    public disturbed = false;
 
     constructor(public name: string, game: Game) {
         this.game = game;

@@ -97,4 +97,12 @@
 	</div>
 </div>
 
+<div class="modal" *ngIf="modal.state.active">
+	<div class="modal-card">
+		<h2>{{ modal.state.title }}</h2>
+		<p>{{ modal.state.description }}</p>
+		<button type="button" (click)="dismissModal()">OK</button>
+	</div>
+</div>
+
 <router-outlet />

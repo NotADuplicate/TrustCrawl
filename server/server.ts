@@ -229,6 +229,15 @@ wss.on('connection', (socket) => {
                 restHandler.handleAccuseVote(clientInfo, data.vote);
             }
 
+            if (data.type === 'rest:camp' && game.gamePlayers) {
+                const clientInfo = game.clients.get(socket);
+                if (!clientInfo) {
+                    return;
+                }
+
+                restHandler.handleCamp(clientInfo);
+            }
+
             if (data.type === 'rest:eat' && typeof data.eatAmount === 'number') {
                 const clientInfo = game.clients.get(socket);
                 if (!clientInfo) {

@@ -7,6 +7,7 @@ export type Skill = {
   description: string;
   targeted?: boolean;
   options?: string[];
+  demon?: boolean;
 };
 
 export type RestingState = {
@@ -14,6 +15,8 @@ export type RestingState = {
   skills: Skill[];
   selectedSkills: number[];
   skillText: string | null;
+  camped: boolean;
+  campReady: boolean;
   haveEaten: boolean;
   sequence: number;
   continued: boolean;
@@ -36,6 +39,8 @@ export class RestingService extends Service {
     skills: [],
     selectedSkills: [],
     skillText: null,
+    camped: false,
+    campReady: false,
     haveEaten: false,
     sequence: 0,
     continued: false,
@@ -66,7 +71,7 @@ export class RestingService extends Service {
         return;
       }
 
-      if (data.type === 'accuse:result') {
+      if (data.type === 'modal') {
         this.resetAccusation();
         this.refresh();
         return;
@@ -137,8 +142,18 @@ export class RestingService extends Service {
     this.socket.send({ type: 'rest:pick', optionIndex: index, targetName: trimmedTarget });
   }
 
+  camp(): void {
+    if (!this.canSend() || this.state.camped || this.state.haveEaten) {
+      return;
+    }
+
+    this.state.camped = true;
+    this.socket.send({ type: 'rest:camp' });
+    this.refresh();
+  }
+
   eatFood(amount: number): void {
-    if (!this.canSend()) {
+    if (!this.canSend() || !this.state.campReady) {
       return;
     }
 
@@ -195,6 +210,8 @@ export class RestingService extends Service {
     this.state.skills = [];
     this.state.selectedSkills = [];
     this.state.skillText = null;
+    this.state.camped = false;
+    this.state.campReady = false;
     this.state.haveEaten = false;
     this.state.sequence = 0;
     this.state.continued = false;
@@ -227,6 +244,8 @@ export class RestingService extends Service {
     this.state.skills = Array.isArray(data['skills']) ? (data['skills'] as Skill[]) : [];
     this.state.selectedSkills = Array.isArray(data['selectedSkills']) ? (data['selectedSkills'] as number[]) : [];
     this.state.skillText = (data['skillText'] as string | null) ?? null;
+    this.state.camped = Boolean(data['camped']);
+    this.state.campReady = Boolean(data['campReady']);
     this.state.haveEaten = Boolean(data['haveEaten']);
     this.state.continued = false;
     this.state.carryingCapacity = Number(data['hauling'] ? 12 : 6);

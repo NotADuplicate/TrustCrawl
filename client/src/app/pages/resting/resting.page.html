@@ -23,7 +23,7 @@
         >
           Map
         </button>
-        <button *ngIf="!resting.state.haveEaten" type="button" class="ghost" (click)="openModal('eat')">Eat</button>
+        <button *ngIf="!resting.state.haveEaten && inventory.myHealth >= 0" type="button" class="ghost" (click)="camp()" [disabled]="resting.state.camped && !resting.state.campReady">Camp</button>
       </div>
     </header>
 
@@ -32,14 +32,16 @@
         type="button"
         class="option"
         *ngFor="let skill of resting.state.skills; let idx = index"
-        [disabled]="resting.state.selectedSkills.includes(idx) || resting.state.haveEaten || inventory.myStamina < 1 || inventory.myHealth < 1"
+        [disabled]="resting.state.selectedSkills.includes(idx) || resting.state.camped || resting.state.haveEaten || inventory.myStamina < 1 || inventory.myHealth < 1"
         [class.selected]="resting.state.selectedSkills.includes(idx)"
+        [class.option--demon]="skill.demon"
         (click)="pickSkill(idx)"
       >
         <span class="option-text">{{ skill.name }}</span>
         <span class="option-subtext">{{ skill.description }}</span>
         <span class="option-target" *ngIf="skill.targeted">Targeted</span>
         <span class="option-target" *ngIf="!skill.targeted && skill.options?.length">Options</span>
+        <span class="option-target option-target--demon" *ngIf="skill.demon">Demon</span>
       </button>
     </div>
 
@@ -68,7 +70,7 @@
     [ngTemplateOutlet]="modalShell"
     [ngTemplateOutletContext]="{
       title: 'Eat food?',
-      description: 'How many food rations do you want to eat?',
+      description: 'The camp is set. How many food rations do you want to eat?',
       content: eatPromptContent
     }"
   ></ng-container>
