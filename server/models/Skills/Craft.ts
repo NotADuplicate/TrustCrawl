@@ -8,7 +8,11 @@ export class Craft extends Skill {
             'Craft',
             'Turn a tool into either a key or a shiv.',
             false,
-            ['key', 'shiv']
+            ['key', 'shiv'],
+            {
+                key: 'Used to open chests.',
+                shiv: 'Deal 1 damage to any target.',
+            }
         );
     }
 

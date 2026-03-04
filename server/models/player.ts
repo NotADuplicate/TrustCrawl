@@ -22,6 +22,7 @@ export class Player {
     public disturbed = false;
     public confused = false;
     public investigating = false;
+    public lastSkills: Skill[] = [];
 
     constructor(public name: string, game: Game) {
         this.game = game;

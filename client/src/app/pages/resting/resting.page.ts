@@ -147,6 +147,15 @@ export class RestingPage {
     this.pendingOptionSkill.set(null);
   }
 
+  protected pendingSkillOptions(): string[] {
+    return this.resting.state.skills[this.pendingOptionSkill() ?? 0]?.options || [];
+  }
+
+  protected optionTooltip(optionChoice: string): string | null {
+    const skill = this.resting.state.skills[this.pendingOptionSkill() ?? 0];
+    return skill?.optionTooltips?.[optionChoice] ?? null;
+  }
+
   protected dismissBodyWarning(): void {
     this.pendingBodyItemName.set(null);
     this.closeModal('body');

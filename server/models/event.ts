@@ -6,6 +6,7 @@ export type EventOption = {
     description: string;
     selectedText?: string;
     color?: 'success' | 'danger' | 'warning' | 'info';
+    tooltip?: string;
     demonText?: string;
     quantity?: boolean;
     repeatable?: boolean;

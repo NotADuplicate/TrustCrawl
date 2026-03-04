@@ -124,17 +124,18 @@ export class EventHandler {
 
         if (this.currentEvent.mode === 'individual') {
             const option = this.currentEvent.options[optionIndex];
+            if (option?.repeatable) {
+                this.votes.delete(player.name);
+                const result = this.currentEvent.optionSelected(optionIndex, player, quantity, this.game);
+                this.sendEventTo(socket, result);
+                return false;
+            }
+
             this.currentEvent.optionSelections.push({ optionNumber: optionIndex, player, quantity });
             const result = {
                 text: this.currentEvent.options[optionIndex]?.selectedText ?? '',
                 color: this.currentEvent.options[optionIndex]?.color ?? 'info'
             };
-            if (option?.repeatable) {
-                this.votes.delete(player.name);
-                this.sendEventTo(socket, result);
-                return false;
-            }
-
             this.revealedPlayers.add(player.name);
             this.sendEventTo(socket, result);
             if (this.revealedPlayers.size >= this.game.players.filter(p => p.health>0).length) {
@@ -349,6 +350,7 @@ export class EventHandler {
             description: this.currentEvent.description,
             options: this.currentEvent.options.map((option, index) => ({
                 description: option.description,
+                tooltip: option.tooltip,
                 available: player ? player.health >= 0 && this.currentEvent.isOptionAvailable(index, player) : true,
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? this.currentEvent.optionQuantityMax(index, player) : undefined,
@@ -410,6 +412,7 @@ export class EventHandler {
             description: event.description,
             options: event.options.map((option, index) => ({
                 description: option.description,
+                tooltip: option.tooltip,
                 available: player ? player.health >= 0 && event.isOptionAvailable(index, player) : true,
                 quantity: option.quantity ?? false,
                 max: option.quantity && player ? event.optionQuantityMax(index, player) : undefined,

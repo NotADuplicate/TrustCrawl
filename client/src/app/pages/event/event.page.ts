@@ -54,14 +54,18 @@ export class EventPage {
     this.closeQuantityPrompt();
   }
 
-  protected selectedLabel(): string {
-    const index = this.event.state.selectedOption;
-    if (index === null || index === undefined) {
-      return 'No selection';
-    }
+  protected showVotes(): boolean {
+    return this.event.state.mode === 'group' && this.event.state.status === 'revealed';
+  }
 
-    const option = this.event.state.options[index];
-    return option ? option.description : 'No selection';
+  protected votesForOption(index: number): string {
+    const result = this.event.state.results.find((entry) => entry.optionIndex === index);
+    const votes = result?.votes ?? 0;
+    return `${votes} vote${votes === 1 ? '' : 's'}`;
+  }
+
+  protected isRevealedGroupSelection(index: number): boolean {
+    return this.showVotes() && this.event.state.selectedOption === index;
   }
 
   protected resultClass(color: string | null): string {

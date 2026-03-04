@@ -4,7 +4,8 @@ export class Skill {
         public name: string,
         public description: string,
         public targeted = false,
-        public options: string[] = []
+        public options: string[] = [],
+        public optionTooltips: Record<string, string> = {}
     ) { }
 
     Use(player: Player, target?: Player, option?: string): string {

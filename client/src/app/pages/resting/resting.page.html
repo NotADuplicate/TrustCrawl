@@ -216,7 +216,9 @@
   <div class="modal-actions">
     <button
       type="button"
-      *ngFor="let option of (resting.state.skills[pendingOptionSkill() ?? 0]?.options || [])"
+      *ngFor="let option of pendingSkillOptions()"
+      [class.has-tooltip]="!!optionTooltip(option)"
+      [attr.data-tooltip]="optionTooltip(option) || null"
       (click)="selectOption(option)"
     >
       {{ option }}

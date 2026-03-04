@@ -3,7 +3,9 @@ import { Game } from '../server/game';
 import { RestHandler } from '../server/resthandler';
 import { Food } from '../server/models/Items/Supplies/food';
 import { Tool } from '../server/models/Items/Supplies/tool';
-import { Disturb, Poison } from '../server/models/Skills/DemonSkills';
+import { Confuse } from '../server/models/Skills/DemonSkills';
+import { Craft } from '../server/models/Skills/Craft';
+import { Scout } from '../server/models/Skills/Scout';
 
 type MockSocket = {
   OPEN: number;
@@ -113,7 +115,7 @@ describe('RestHandler', () => {
     internals.playerSkills.set(player.name, [
       { name: 'Scavenge' },
       { name: 'Scout' },
-      new Disturb(),
+      new Confuse(),
     ]);
 
     handler.sendRestTo(socket as never);
@@ -124,7 +126,30 @@ describe('RestHandler', () => {
     expect(payload.skills[0]?.demon).toBe(false);
     expect(payload.skills[1]?.demon).toBe(false);
     expect(payload.skills[2]?.demon).toBe(true);
-    expect([new Disturb().name, new Poison().name]).toContain(payload.skills[2]?.name);
+    expect(payload.skills[2]?.name).toBe(new Confuse().name);
+  });
+
+  it('includes skill option tooltips in the rest payload', () => {
+    const game = new Game(0);
+    const socket = createSocket();
+    const player = game.addPlayer(socket as never, 'Charlie');
+    player.health = 1;
+    game.gamePlayers = game.players;
+
+    const handler = new RestHandler(game);
+    const internals = handler as unknown as {
+      playerSkills: Map<string, Array<{ name: string; description: string; options: string[]; optionTooltips?: Record<string, string> }>>;
+    };
+
+    internals.playerSkills.set(player.name, [new Scout(), new Craft()]);
+
+    handler.sendRestTo(socket as never);
+
+    const payload = JSON.parse(String(socket.send.mock.calls.at(-1)?.[0] ?? '{}'));
+    expect(payload.type).toBe('rest');
+    expect(payload.skills[0]?.options).toEqual(['left', 'right']);
+    expect(payload.skills[0]?.optionTooltips?.left).toBe('Reveal the left path before the group enters.');
+    expect(payload.skills[1]?.optionTooltips?.key).toBe('Spend 1 Tool to craft a Key.');
   });
 
   it('waits for all living players to camp before marking camp ready', () => {

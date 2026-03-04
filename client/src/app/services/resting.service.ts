@@ -7,6 +7,7 @@ export type Skill = {
   description: string;
   targeted?: boolean;
   options?: string[];
+  optionTooltips?: Record<string, string>;
   demon?: boolean;
 };
 

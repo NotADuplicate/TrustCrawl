@@ -4,6 +4,7 @@ import { Service } from './service';
 
 export type EventOption = {
   description: string;
+  tooltip?: string;
   available?: boolean;
   demonText?: string;
   quantity?: boolean;

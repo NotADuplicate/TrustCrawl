@@ -91,4 +91,34 @@ describe('RestingService', () => {
 
     expect(service.state.accuseActive).toBe(false);
   });
+
+  it('stores skill option tooltips from the rest payload', () => {
+    const mock = createMockSocket();
+    const service = new RestingService(mock.socket);
+
+    mock.emit({
+      type: 'rest',
+      title: 'Resting',
+      skills: [
+        {
+          name: 'Scout',
+          description: 'Pick a path.',
+          options: ['left', 'right'],
+          optionTooltips: {
+            left: 'Reveal the left path.',
+            right: 'Reveal the right path.',
+          },
+        },
+      ],
+      selectedSkills: [],
+      camped: false,
+      campReady: false,
+      haveEaten: false,
+      secondsLeft: 10,
+      totalSeconds: 20,
+    });
+
+    expect(service.state.skills[0]?.optionTooltips?.left).toBe('Reveal the left path.');
+    expect(service.state.skills[0]?.optionTooltips?.right).toBe('Reveal the right path.');
+  });
 });

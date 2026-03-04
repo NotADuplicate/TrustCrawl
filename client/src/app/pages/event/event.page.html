@@ -14,11 +14,17 @@
         type="button"
         class="option"
         *ngFor="let option of event.state.options; let idx = index"
+        [class.has-tooltip]="!!option.tooltip"
+        [class.option--revealed-selected]="isRevealedGroupSelection(idx)"
+        [attr.data-tooltip]="option.tooltip || null"
         [disabled]="event.state.preview || event.state.status === 'revealed' || event.state.votedOption !== null || option.available === false"
         [class.selected]="event.state.status === 'revealed' && event.state.selectedOption === idx"
         (click)="vote(idx)"
       >
-        <span class="option-text">{{ option.description }}</span>
+        <span class="option-row">
+          <span class="option-text">{{ option.description }}</span>
+          <span class="option-votes" *ngIf="showVotes()">{{ votesForOption(idx) }}</span>
+        </span>
         <span class="demon-text" *ngIf="option.demonText">{{ option.demonText }}</span>
       </button>
     </div>
@@ -42,18 +48,9 @@
 
     <div class="results" *ngIf="event.state.status === 'revealed'">
       <ng-container *ngIf="event.state.mode === 'group'">
-        <h2>Results</h2>
-        <ul>
-          <li *ngFor="let result of event.state.results">
-            <span class="label">Option {{ result.optionIndex + 1 }}</span>
-            <span class="value">{{ result.votes }} votes</span>
-          </li>
-        </ul>
-
-        <div class="selection">
+        <div class="selection" *ngIf="event.state.selectedPlayer">
           <h3>Selected</h3>
-          <p>{{ event.state.selectedPlayer || 'No player selected' }}</p>
-          <p class="choice">{{ selectedLabel() }}</p>
+          <p>{{ event.state.selectedPlayer }}</p>
         </div>
       </ng-container>
 

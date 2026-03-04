@@ -14,17 +14,17 @@ import { Investigate } from './models/Skills/Investigate';
 
 export class RestHandler {
     private readonly skillPool: Skill[] = [
-        //new Scavenge(),
+        new Scavenge(),
         new Scout(),
-        //new Forage(),
-        /*new Haul(),
+        new Forage(),
+        new Haul(),
         new Mend(),
         new Hunt(),
         new Cook(),
         new Craft(),
         new Prepare(),
         new Endure(),
-        new Search(),*/
+        new Search(),
         new Investigate(),
     ];
 
@@ -354,6 +354,7 @@ export class RestHandler {
                 description: skill.description,
                 targeted: skill.targeted,
                 options: skill.options,
+                optionTooltips: skill.optionTooltips,
                 demon: this.skillPoolDemon.some((demonSkill) => demonSkill.name === skill.name),
             })),
             selectedSkills: this.selectedSkills.get(player.name) ?? [],
@@ -375,7 +376,7 @@ export class RestHandler {
         }
         const player = this.game.players.find((p) => p.name === playerName);
 
-        const picks = this.pickSkills(2);
+        const picks = this.pickSkills(2, player);
         if (player?.isDemon) {
             const demonPickIndex = Math.floor(Math.random() * this.skillPoolDemon.length);
             picks[2] = this.skillPoolDemon[demonPickIndex];
@@ -386,6 +387,7 @@ export class RestHandler {
             }
             player.preppedSkill = null;
         }
+        player!.lastSkills = picks;
         this.playerSkills.set(playerName, picks);
         return picks;
     }
@@ -394,11 +396,15 @@ export class RestHandler {
         return this.campVotes.size >= this.game.players.filter((player) => player.health >= 0).length;
     }
 
-    public pickSkills(count: number): Skill[] {
+    public pickSkills(count: number, player?: Player): Skill[] {
         const pool = [...this.skillPool];
         const selected: Skill[] = [];
         while (selected.length < count && pool.length > 0) {
             const index = Math.floor(Math.random() * pool.length);
+            if(player?.lastSkills.some(s => s.name === pool[index].name)) {
+                pool.splice(index, 1);
+                continue;
+            }
             selected.push(pool.splice(index, 1)[0]);
         }
 

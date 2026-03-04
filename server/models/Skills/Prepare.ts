@@ -21,10 +21,12 @@ export class Prepare extends Skill {
             'Prepare',
             'Pick 1 of five skills to have ready for the next floor.',
             false,
-            ['key', 'shiv']
         );
         this.selectedSkills = this.pickSkills(5);
         this.options = this.selectedSkills.map(skill => skill.name);
+        this.optionTooltips = Object.fromEntries(
+            this.selectedSkills.map((skill) => [skill.name, skill.description]),
+        );
     }
 
     override Use(player: Player, target?: Player, option?: string): string {

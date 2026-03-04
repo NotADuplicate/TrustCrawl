@@ -15,6 +15,7 @@ export type PlayerState = {
 
 export type EventOption = {
   description: string;
+  tooltip?: string;
   available?: boolean;
   demonText?: string;
 };
