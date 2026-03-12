@@ -3,6 +3,9 @@
     <header class="header">
       <div>
         <h1>{{ event.state.title || 'Event' }}</h1>
+        <p class="direction-banner" *ngIf="event.state.directionMessage && !event.state.preview">
+          {{ event.state.directionMessage }}
+        </p>
         <p class="description" *ngIf="event.state.description">
           {{ event.state.description }}
         </p>
@@ -45,16 +48,6 @@
         }"
       ></ng-container>
     </div>
-
-    <div class="results" *ngIf="event.state.status === 'revealed'">
-      <ng-container *ngIf="event.state.mode === 'group'">
-        <div class="selection" *ngIf="event.state.selectedPlayer">
-          <h3>Selected</h3>
-          <p>{{ event.state.selectedPlayer }}</p>
-        </div>
-      </ng-container>
-
-      </div>
 
     <div class="selection" *ngIf="event.state.endedMessage">
       <ng-container

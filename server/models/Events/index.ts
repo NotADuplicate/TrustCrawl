@@ -11,3 +11,5 @@ export * from './spiders';
 export * from './suspiciousMerchant';
 export * from './giantBoar';
 export * from './cleric';
+export * from './splitUp';
+export * from './trustAltar';

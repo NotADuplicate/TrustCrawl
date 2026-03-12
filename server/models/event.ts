@@ -30,7 +30,7 @@ export class Event {
     selections: number = 0;
     game?: Game;
     eventHandler?: EventHandler;
-    trueProbability?: number;
+    trueProbability: number[] = [];
     public optionSelections: Selections[] = [];
     constructor(
         public title: string,
@@ -89,16 +89,16 @@ export class Event {
         return Math.abs(hash) % 1000 / 1000;
     }
 
-    getRandom(probability: number): boolean {
+    getRandom(probability: number, index: number = 0): boolean {
         let attempts = 0;
-        while((this.trueProbability === undefined || Math.abs(this.trueProbability - probability) < 0.05) && attempts < 10) {
-            this.trueProbability = probability + Math.random() * probability*2 - probability;
+        while((index >= this.trueProbability.length || Math.abs(this.trueProbability[index] - probability) < 0.05) && attempts < 10) {
+            this.trueProbability[index] = probability + Math.random() * probability*2 - probability;
             if(probability > 0.5) {
-                this.trueProbability = probability + Math.random() * (1-probability)*2 - (1-probability); //add some noise to the true probability so it's not always the same for the same event
+                this.trueProbability[index] = probability + Math.random() * (1-probability)*2 - (1-probability); //add some noise to the true probability so it's not always the same for the same event
             }
             attempts++;
         }
-        return Math.random() < this.trueProbability!;
+        return Math.random() < this.trueProbability[index];
     }
 
     stab(target: number): string {

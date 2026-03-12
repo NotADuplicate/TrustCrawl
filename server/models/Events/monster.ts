@@ -18,7 +18,7 @@ export class Monster extends Event {
         super(
             'Monster',
             `Any players can attack the monster to deal a damage to it, but if it survives it will deal an extra damage to ALL players.
-            \nIt has between 2 and ${players.length+1} health. If killed it will drop between 0 and ${players.length} items on the floor.`,
+            \nIt has between 2 and ${players.length+1} health. If killed it will drop between 0 and ${players.length-1} items on the floor.`,
             [
                 {
                     description: 'Attack the monster. Take 1 damage and deal damage',

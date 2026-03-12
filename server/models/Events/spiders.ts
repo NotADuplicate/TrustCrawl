@@ -104,16 +104,16 @@ export class Spiders extends Event {
         const healthRange = (this.players.length/2)-1;
 
         if(optionNumber === 0) {
-            const minHealth1 = 1 + Math.floor(Math.max(0, this.health1 - this.seededRandom(player) * healthRange));
-            const maxHealth1 = 1 + Math.floor(Math.min(this.players.length-2, this.health1 + (1 - this.seededRandom(player)) * healthRange));
+            const minHealth1 = Math.floor(Math.max(1, this.health1 - this.seededRandom(player) * healthRange));
+            const maxHealth1 = Math.floor(Math.min(this.players.length, this.health1 + (1 - this.seededRandom(player)) * healthRange));
             const foodRange = this.players.length;
             const minFood = Math.floor(Math.max(1, this.foodAmount - this.seededRandom(player,'food') * foodRange));
             const maxFood = Math.floor(Math.min(this.players.length*2, this.foodAmount + (1 - this.seededRandom(player,'food')) * foodRange));
             return `It has between ${minHealth1} and ${maxHealth1} health. It guards between ${minFood} and ${maxFood} food.`;
         }
         if(optionNumber === 1) {
-            const minHealth2 = 1 + Math.floor(Math.max(0, this.health2 - this.seededRandom(player,'1') * healthRange));
-            const maxHealth2 = 1 + Math.floor(Math.min(this.players.length-2, this.health2 + (1 - this.seededRandom(player,'1')) * healthRange));
+            const minHealth2 = Math.floor(Math.max(1, this.health2 - this.seededRandom(player,'1') * healthRange));
+            const maxHealth2 = Math.floor(Math.min(this.players.length, this.health2 + (1 - this.seededRandom(player,'1')) * healthRange));
             const goldRange = this.players.length/2;
             const minGold = Math.floor(Math.max(1, this.goldAmount - this.seededRandom(player,'gold') * goldRange));
             const maxGold = Math.floor(Math.min(this.players.length, this.goldAmount + (1 - this.seededRandom(player,'gold')) * goldRange));

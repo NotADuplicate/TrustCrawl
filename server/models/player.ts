@@ -1,6 +1,7 @@
 import { Game } from '../game';
 import { Item } from './item';
 import { Body } from './Items/body';
+import { Corpse } from './Items/corpse';
 import { Skill } from './skill';
 
 export class Player {
@@ -116,6 +117,7 @@ export class Player {
         this.wounded = false;
         this.removeBodyMarker();
         this.game.floorItems.push(...this.inventory);
+        this.game.floorItems.push(new Corpse(this));
         this.inventory = [];
         console.log(`${this.name} has died.`);
     }

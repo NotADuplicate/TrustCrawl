@@ -49,6 +49,10 @@ export class Beast extends Event {
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
         if(optionNumber === 0) {
             return !player.wounded;
+        } else if(optionNumber === 1) {
+            return player.inventory.some(item => item.name === 'Food');
+        } else if(optionNumber === 2) {
+            return player.inventory.some(item => item.name === 'Raw Meat');
         }
         return true;
     }
@@ -59,15 +63,15 @@ export class Beast extends Event {
         const meatRange = this.players.length;
         const minHealth = Math.floor(Math.max(1, this.health - this.seededRandom(player) * healthRange));
         const maxHealth = Math.floor(Math.min(this.players.length, this.health + (1 - this.seededRandom(player)) * healthRange));
-        const minHunger = Math.floor(Math.max(1, this.hunger - this.seededRandom(player) * hungerRange));
-        const maxHunger = Math.floor(Math.min(this.players.length*1.5, this.hunger + (1 - this.seededRandom(player)) * hungerRange));
+        const minHunger = Math.ceil(Math.max(1, this.hunger - this.seededRandom(player) * hungerRange));
+        const maxHunger = Math.ceil(Math.min(this.players.length*1.5, minHunger + hungerRange));
         const minMeat = Math.floor(Math.max(1, this.meat - this.seededRandom(player) * meatRange));
         const maxMeat = Math.floor(Math.min(this.players.length*2, this.meat + (1 - this.seededRandom(player)) * meatRange));
 
         if(optionNumber === 0) {
             return `The beast has between ${minHealth} and ${maxHealth} health. It will drop between ${minMeat} and ${maxMeat} raw meat when killed.`;
         } else if(optionNumber === 1 || optionNumber === 2) {
-            return `The beast looks very hungry, it has between ${minHunger} and ${maxHunger} hunger.`;
+            return `It has between ${minHunger} and ${maxHunger} hunger.`;
         }
         return undefined;
     }

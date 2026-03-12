@@ -1,5 +1,5 @@
 import { Game } from "./game";
-import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant, Carcass, Spiders, SuspiciousMerchant, GiantBoar, Cleric } from "./models/Events";
+import { Beast, Rubble, Monster, Chasm, Treasure, HotSpring, Cliff, Merchant, Carcass, Spiders, SuspiciousMerchant, GiantBoar, Cleric, TrustAltar, SplitUp } from "./models/Events";
 import { Boss } from "./models/Events/boss";
 import { GamblingGround } from "./models/Events/gambling";
 import { TooSlow } from "./models/Events/tooSlow";
@@ -24,6 +24,9 @@ export class EventHandler {
     private lastThreeEvents: Event[] = [];
     private bossEvent: Boss | null = null;
     private onCurrentEventFinished?: () => void;
+    private revealedSelectedOption: number | null = null;
+    private revealedSelectedPlayer: string | null = null;
+    private approachDirection: 'left' | 'right' | null = null;
     eventActive = false;
 
     private readonly EventPool = [
@@ -41,7 +44,9 @@ export class EventHandler {
         Spiders,
         SuspiciousMerchant,
         GiantBoar,
-        Cleric
+        Cleric,
+        TrustAltar,
+        SplitUp,
     ];
 
     constructor(
@@ -63,6 +68,9 @@ export class EventHandler {
         this.previewLeft = undefined;
         this.previewRight = undefined;
         this.bossEvent = null;
+        this.revealedSelectedOption = null;
+        this.revealedSelectedPlayer = null;
+        this.approachDirection = null;
         this.onCurrentEventFinished = this.onEventFinished;
         if (this.eventTimer) {
             clearTimeout(this.eventTimer);
@@ -145,6 +153,7 @@ export class EventHandler {
                     if(player.confused) {
                         const availableOptions = this.currentEvent.options.map((_, index) => this.currentEvent.isOptionAvailable(index, player) ? index : null).filter(index => index !== null) as number[];
                         const randomIndex = availableOptions[Math.floor(Math.random() * availableOptions.length)];
+                        this.votes.set(player.name, randomIndex);
                         this.currentEvent.optionSelected(randomIndex, player, selection.quantity, this.game);
                         this.game.sendModal(
                             'Confused!',
@@ -170,6 +179,8 @@ export class EventHandler {
                 return false;
             }
 
+            this.revealedSelectedOption = resolved.selectedOption;
+            this.revealedSelectedPlayer = resolved.selectedPlayer;
             this.revealEvent(resolved.result);
             return true;
         }
@@ -191,6 +202,7 @@ export class EventHandler {
             return;
         }
 
+        this.approachDirection = direction;
         this.beginEvent(nextEvent, this.onEventFinished, true, true);
     }
 
@@ -202,6 +214,7 @@ export class EventHandler {
 
         const tooSlow = new TooSlow(this.game.players, failedPlayers);
         tooSlow.game = this.game;
+        this.approachDirection = null;
         this.beginEvent(tooSlow, onFinished ?? this.onEventFinished, false, false);
     }
 
@@ -303,6 +316,8 @@ export class EventHandler {
         this.votes.clear();
         this.revealedPlayers.clear();
         this.endContinues.clear();
+        this.revealedSelectedOption = null;
+        this.revealedSelectedPlayer = null;
         this.eventStartedAt = Date.now();
         this.activeTimerMs = this.game.getEventTimerMs();
         if (clearPreviews) {
@@ -361,6 +376,7 @@ export class EventHandler {
             totalSeconds: Math.ceil(this.activeTimerMs / 1000),
             secondsLeft: this.getSecondsLeft(),
             status,
+            directionMessage: this.approachDirection ? `You went ${this.approachDirection}!` : null,
         };
 
         if (status === 'voting') {
@@ -387,19 +403,10 @@ export class EventHandler {
             votes: Array.from(this.votes.values()).filter((vote) => vote === index).length,
         }));
 
-        let selectedOption: number | null = null;
-        let selectedPlayer: string | null = null;
-        const voters = Array.from(this.votes.keys());
-        if (voters.length > 0) {
-            selectedPlayer = voters[Math.floor(Math.random() * voters.length)];
-            selectedOption = this.votes.get(selectedPlayer) ?? null;
-        }
-
         return JSON.stringify({
             ...base,
             results,
-            selectedOption,
-            selectedPlayer,
+            selectedOption: this.revealedSelectedOption,
         });
     }
 
@@ -508,6 +515,8 @@ export class EventHandler {
                     return;
                 }
 
+                this.revealedSelectedOption = resolved.selectedOption;
+                this.revealedSelectedPlayer = resolved.selectedPlayer;
                 this.revealEvent(resolved.result);
                 return;
             }
@@ -577,10 +586,22 @@ export class EventHandler {
     groupEventResolve(): { selectedOption: number | null; selectedPlayer: string | null; result: EventResult; repeatable: boolean } {
         let selectedOption: number | null = null;
         let selectedPlayer: string | null = null;
-        const voters = Array.from(this.votes.keys());
-        if (voters.length > 0) {
-            selectedPlayer = voters[Math.floor(Math.random() * voters.length)];
-            selectedOption = this.votes.get(selectedPlayer) ?? null;
+        const voteCounts = new Map<number, number>();
+        for (const vote of this.votes.values()) {
+            voteCounts.set(vote, (voteCounts.get(vote) ?? 0) + 1);
+        }
+        if (voteCounts.size > 0) {
+            const maxVotes = Math.max(...Array.from(voteCounts.values()));
+            const tiedOptions = Array.from(voteCounts.entries())
+                .filter(([, votes]) => votes === maxVotes)
+                .map(([option]) => option);
+            selectedOption = tiedOptions[Math.floor(Math.random() * tiedOptions.length)] ?? null;
+            const votersForOption = Array.from(this.votes.entries())
+                .filter(([, vote]) => vote === selectedOption)
+                .map(([name]) => name);
+            if (votersForOption.length > 0) {
+                selectedPlayer = votersForOption[Math.floor(Math.random() * votersForOption.length)] ?? null;
+            }
         }
 
         const optionIndex = selectedOption ?? 0;

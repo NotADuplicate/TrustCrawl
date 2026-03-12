@@ -91,13 +91,31 @@
     <h3>{{ item.name }}</h3>
     <p>{{ item.description }}</p>
     <span class="weight">Weight: {{ item.weight }}</span>
-    <button
-      type="button"
-      class="ghost"
-      *ngIf="showUseButton"
-      (click)="$event.stopPropagation(); useItem(item.name)"
-    >
-      {{ item.useVerb || 'Use' }}
-    </button>
+    <div class="item-actions">
+      <button
+        type="button"
+        class="ghost"
+        *ngIf="showUseButton"
+        (click)="$event.stopPropagation(); useItem(item.name)"
+      >
+        {{ item.useVerb || 'Use' }}
+      </button>
+      <button
+        type="button"
+        class="ghost"
+        *ngIf="source === 'inventory'"
+        (click)="$event.stopPropagation(); dropItem(item.name)"
+      >
+        Drop
+      </button>
+      <button
+        type="button"
+        class="ghost"
+        *ngIf="source === 'floor'"
+        (click)="$event.stopPropagation(); pickUpItem(item.name)"
+      >
+        Pick up
+      </button>
+    </div>
   </article>
 </ng-template>

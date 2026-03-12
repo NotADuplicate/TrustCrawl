@@ -54,6 +54,14 @@ export class InventoryPage {
     this.clearDraggedItem();
   }
 
+  protected dropItem(itemName: string): void {
+    this.inventory.moveToFloor(itemName);
+  }
+
+  protected pickUpItem(itemName: string): void {
+    this.inventory.moveToInventory(itemName);
+  }
+
   protected useItem(itemName: string): void {
     this.inventory.useItem(itemName);
   }

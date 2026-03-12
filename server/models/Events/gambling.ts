@@ -35,7 +35,7 @@ export class GamblingGround extends Event {
     }
 
     override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
-        return `There is a ${Math.floor((this.trueProbability ?? 0.6)*100)}% chance that the items will double.`;
+        return `There is a ${Math.floor((this.trueProbability[0] ?? 0.6)*100)}% chance that the items will double.`;
     }
 
     override eventLikelihood(game: Game): number {

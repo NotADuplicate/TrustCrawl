@@ -7,7 +7,6 @@ import { Chest } from './models/Items/chest';
 import { Food } from './models/Items/Supplies/food';
 import { Tool } from './models/Items/Supplies/tool';
 import { Gold } from './models/Items/Supplies/gold';
-import { Bandadge } from './models/Items/Equipment/bandadge';
 import { Confuse, Disturb, Poison } from './models/Skills/DemonSkills';
 import { Search } from './models/Skills/Search';
 import { Investigate } from './models/Skills/Investigate';
@@ -29,6 +28,8 @@ export class RestHandler {
     ];
 
     private readonly skillPoolDemon: Skill[] = [
+        new Poison(),
+        new Disturb(),
         new Confuse(),
     ];
 
@@ -177,9 +178,10 @@ export class RestHandler {
             return;
         }
 
-        const voters = Array.from(this.continueVotes.keys());
-        const chosenName = voters[Math.floor(Math.random() * voters.length)];
-        const chosenDirection = this.continueVotes.get(chosenName) ?? direction;
+        const chosenDirection = this.resolveContinueDirection(direction);
+        const chosenName = this.pickDirectionChooser(chosenDirection)
+            ?? this.game.players.find((entry) => entry.health > 0)?.name
+            ?? player.name;
         this.continueVotes.clear();
         this.finalizeContinue(chosenDirection, chosenName);
     }
@@ -252,6 +254,10 @@ export class RestHandler {
             if (!removed) {
                 break;
             }
+            if(removed instanceof Food && removed.poisoned) { 
+                player.damage(1, false);
+                this.game.sendModal('Poisoned food!', 'You have eaten poisoned food and took 1 damage.', player);
+            }
             eaten += 1;
         }
 
@@ -273,7 +279,7 @@ export class RestHandler {
             this.game.floorItems.push(chest);
             return;
         }
-        const supplies = [Food, Tool, Gold, Bandadge];
+        const supplies = [Food, Tool, Gold];
         const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
         const item = new supplyType();
         this.game.floorItems.push(item);
@@ -485,9 +491,14 @@ export class RestHandler {
         this.broadcastRest();
         this.game.broadcastGame();
 
-        const direction: 'left' | 'right' = Math.random() < 0.5 ? 'left' : 'right';
-        const eligiblePlayers = this.game.players.filter((player) => player.health > 0);
-        const chooser = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)] ?? this.game.players[0];
+        const fallbackDirection: 'left' | 'right' = Math.random() < 0.5 ? 'left' : 'right';
+        const direction = this.resolveContinueDirection(fallbackDirection);
+        const chooserName = this.pickDirectionChooser(direction);
+        const chooser = (chooserName
+            ? this.game.players.find((entry) => entry.name === chooserName)
+            : undefined)
+            ?? this.game.players.find((entry) => entry.health > 0)
+            ?? this.game.players[0];
         if (!chooser) {
             return;
         }
@@ -532,6 +543,39 @@ export class RestHandler {
     private getRestSecondsLeft(): number {
         const elapsedMs = Date.now() - this.restStartedAt;
         return Math.max(0, Math.ceil((this.restTimerDurationMs - elapsedMs) / 1000));
+    }
+
+    private resolveContinueDirection(fallback: 'left' | 'right'): 'left' | 'right' {
+        let leftVotes = 0;
+        let rightVotes = 0;
+        for (const vote of this.continueVotes.values()) {
+            if (vote === 'left') {
+                leftVotes++;
+            } else {
+                rightVotes++;
+            }
+        }
+
+        if (leftVotes === 0 && rightVotes === 0) {
+            return fallback;
+        }
+        if (leftVotes > rightVotes) {
+            return 'left';
+        }
+        if (rightVotes > leftVotes) {
+            return 'right';
+        }
+        return Math.random() < 0.5 ? 'left' : 'right';
+    }
+
+    private pickDirectionChooser(direction: 'left' | 'right'): string | null {
+        const voters = Array.from(this.continueVotes.entries())
+            .filter(([, vote]) => vote === direction)
+            .map(([name]) => name);
+        if (voters.length === 0) {
+            return null;
+        }
+        return voters[Math.floor(Math.random() * voters.length)] ?? null;
     }
 
     private broadcastAccuse(): void {

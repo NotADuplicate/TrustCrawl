@@ -75,7 +75,7 @@ export class Cliff extends Event {
 
     override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
         if(optionNumber === 1) {
-            return `There is a ${Math.floor((this.trueProbability ?? 0.15)*100)}% chance that the belaying will fail.`;
+            return `There is a ${Math.floor((this.trueProbability[0] ?? 0.15)*100)}% chance that the belaying will fail.`;
         }
         return undefined;
     }

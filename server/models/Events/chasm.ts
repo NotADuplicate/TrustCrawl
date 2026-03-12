@@ -40,7 +40,7 @@ export class Chasm extends Event {
 
     override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
         if(optionNumber === 1) {
-            return `There is a ${Math.floor((this.trueProbability ?? 1/3)*100)}% chance that the bridge will collapse.`;
+            return `There is a ${Math.floor((this.trueProbability[0] ?? 1/3)*100)}% chance that the bridge will collapse.`;
         }
         return undefined;
     }

@@ -17,6 +17,7 @@ export type EventMode = 'group' | 'individual';
 export type EventState = {
   title: string;
   description: string;
+  directionMessage: string | null;
   options: EventOption[];
   status: 'voting' | 'revealed' | 'preview';
   mode: EventMode;
@@ -45,6 +46,7 @@ export class EventService extends Service {
   readonly state: EventState = {
     title: '',
     description: '',
+    directionMessage: null,
     options: [],
     status: 'voting',
     mode: 'group',
@@ -210,6 +212,7 @@ export class EventService extends Service {
   reset(): void {
     this.state.title = '';
     this.state.description = '';
+    this.state.directionMessage = null;
     this.state.options = [];
     this.state.status = 'voting';
     this.state.mode = 'group';
@@ -233,6 +236,7 @@ export class EventService extends Service {
     this.state.preview = preview;
     this.state.title = String(data['title'] ?? '');
     this.state.description = String(data['description'] ?? '');
+    this.state.directionMessage = preview ? null : (data['directionMessage'] as string | null) ?? null;
     this.state.options = Array.isArray(data['options']) ? (data['options'] as EventOption[]) : [];
     this.state.mode = (data['mode'] as EventMode) ?? 'group';
   }

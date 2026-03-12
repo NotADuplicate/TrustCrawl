@@ -127,4 +127,34 @@ describe('EventService', () => {
 
     expect(service.state.resultMessage).toBe('You buy another Tea.');
   });
+
+  it('stores the direction banner when an event starts and clears it for previews', () => {
+    const mock = createMockSocket();
+    const service = new EventService(mock.socket);
+
+    mock.emit({
+      type: 'event',
+      title: 'Rubble',
+      description: 'A cave-in blocks the path.',
+      directionMessage: 'You went right!',
+      options: [{ description: 'Use tool', selectedText: 'You used a tool.' }],
+      mode: 'group',
+      status: 'voting',
+      secondsLeft: 30,
+    });
+
+    expect(service.state.directionMessage).toBe('You went right!');
+
+    mock.emit({
+      type: 'event-preview',
+      title: 'Monster',
+      description: 'A preview.',
+      options: [{ description: 'Attack', selectedText: 'You attacked.' }],
+      mode: 'group',
+      status: 'preview',
+      secondsLeft: 0,
+    });
+
+    expect(service.state.directionMessage).toBeNull();
+  });
 });

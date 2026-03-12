@@ -9,15 +9,15 @@ export type GameDifficulty = 'beginner' | 'normal' | 'expert';
 
 export const DIFFICULTY_TIMER_CONFIG: Record<GameDifficulty, { baseSeconds: number; secondsPerPlayer: number }> = {
     beginner: {
-        baseSeconds: 40,
+        baseSeconds: 35,
         secondsPerPlayer: 6,
     },
     normal: {
-        baseSeconds: 30,
+        baseSeconds: 20,
         secondsPerPlayer: 5,
     },
     expert: {
-        baseSeconds: 24,
+        baseSeconds: 15,
         secondsPerPlayer: 4,
     },
 };
@@ -186,11 +186,11 @@ export class Game {
     }
 
     getEventContinueTimerMs(): number {
-        return Math.max(1_000, Math.ceil(this.getEventTimerMs() / 3));
+        return Math.max(1_000, Math.ceil(this.getEventTimerMs()*0.7));
     }
 
     getRestTimerMs(): number {
-        return Math.max(1_000, Math.ceil(this.getEventTimerMs() * 1.3));
+        return Math.max(1_000, Math.ceil(this.getEventTimerMs() * 2));
     }
 
     buildGamePayload(playerName: string): string | null {
@@ -198,10 +198,11 @@ export class Game {
             return null;
         }
         console.log('Current event for game:', this.currentEvent?.title);
+        const viewingAsDemon = playerName === this.demonName;
 
         return JSON.stringify({
             type: 'game',
-            isDemon: playerName === this.demonName,
+            isDemon: viewingAsDemon,
             level: this.level,
             players: this.gamePlayers.map((player) => ({
                 name: player.name,
@@ -209,7 +210,7 @@ export class Game {
                 wellFed: player.wellFed,
                 stamina: player.stamina,
                 inventory: player.inventory.map((item) => ({
-                    name: item.name,
+                    name: this.displayItemNameForViewer(item, viewingAsDemon),
                     description: item.description,
                     weight: item.weight,
                     useVerb: item.useVerbName(),
@@ -224,6 +225,28 @@ export class Game {
                 usable: false,
             })),
         });
+    }
+
+    private displayItemNameForViewer(item: Item, viewingAsDemon: boolean): string {
+        if (viewingAsDemon && item instanceof Food && item.poisoned) {
+            return 'Poisoned food';
+        }
+        return item.name;
+    }
+
+    private itemMatchesRequestedNameForPlayer(player: Player, item: Item, requestedName: string): boolean {
+        if (item.name === requestedName) {
+            return true;
+        }
+        return player.isDemon && requestedName === 'Poisoned food' && item instanceof Food && item.poisoned;
+    }
+
+    private removeInventoryItemForPlayer(player: Player, requestedName: string): Item | undefined {
+        const index = player.inventory.findIndex((item) => this.itemMatchesRequestedNameForPlayer(player, item, requestedName));
+        if (index === -1) {
+            return undefined;
+        }
+        return player.inventory.splice(index, 1)[0];
     }
 
     broadcastGame(): void {
@@ -280,7 +303,7 @@ export class Game {
             return false;
         }
 
-        const removed = player.removeItem(itemName);
+        const removed = this.removeInventoryItemForPlayer(player, itemName);
         if (!removed) {
             return false;
         }
@@ -302,7 +325,7 @@ export class Game {
             }
         }
 
-        const index = this.floorItems.findIndex((item) => item.name === itemName);
+        const index = this.floorItems.findIndex((item) => this.itemMatchesRequestedNameForPlayer(player, item, itemName));
         if (index === -1) {
             return false;
         }
@@ -318,7 +341,7 @@ export class Game {
             return false;
         }
 
-        const item = player.inventory.find((entry) => entry.name === itemName);
+        const item = player.inventory.find((entry) => this.itemMatchesRequestedNameForPlayer(player, entry, itemName));
         if (!item || !item.isUsable(this, player)) {
             return false;
         }
@@ -335,7 +358,7 @@ export class Game {
             return null;
         }
 
-        const item = player.inventory.find((entry) => entry.name === itemName);
+        const item = player.inventory.find((entry) => this.itemMatchesRequestedNameForPlayer(player, entry, itemName));
         if (!item || !item.isUsable(this, player)) {
             return null;
         }
@@ -348,7 +371,7 @@ export class Game {
             return false;
         }
 
-        const item = player.inventory.find((entry) => entry.name === itemName);
+        const item = player.inventory.find((entry) => this.itemMatchesRequestedNameForPlayer(player, entry, itemName));
         if (!item || !item.isUsable(this, player)) {
             return false;
         }

@@ -67,7 +67,23 @@ describe('Resting UI', () => {
     expect(eventTemplate.includes('{{ votesForOption(idx) }}')).toBe(true);
     expect(eventTemplate.includes('[class.option--revealed-selected]="isRevealedGroupSelection(idx)"')).toBe(true);
     expect(eventTemplate.includes('<ul>')).toBe(false);
+    expect(eventTemplate.includes('event.state.selectedPlayer')).toBe(false);
     expect(eventStyles.includes('.option-votes')).toBe(true);
     expect(eventStyles.includes('.option--revealed-selected')).toBe(true);
+  });
+
+  it('shows the chosen direction banner at the top of the event page', () => {
+    const eventTemplate = readFileSync(
+      'c:\\Users\\charl\\OneDrive\\Desktop\\Trust Crawl\\trust-crawl\\client\\src\\app\\pages\\event\\event.page.html',
+      'utf8',
+    );
+    const eventStyles = readFileSync(
+      'c:\\Users\\charl\\OneDrive\\Desktop\\Trust Crawl\\trust-crawl\\client\\src\\app\\pages\\event\\event.page.scss',
+      'utf8',
+    );
+
+    expect(eventTemplate.includes('event.state.directionMessage')).toBe(true);
+    expect(eventTemplate.includes('class="direction-banner"')).toBe(true);
+    expect(eventStyles.includes('.direction-banner')).toBe(true);
   });
 });

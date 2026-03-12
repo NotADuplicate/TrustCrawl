@@ -60,7 +60,7 @@ describe('player state rules', () => {
     expect(fallen.health).toBe(-1);
     expect(fallen.dead).toBe(true);
     expect(game.floorItems.some((item) => item.name === "Fallen's Body")).toBe(false);
-    expect(onAllContinued).toHaveBeenCalledWith('left', 'Carrier');
+    expect(onAllContinued).toHaveBeenCalledWith('left', 'Carrier', undefined);
   });
 
   it('prevents dead players from influencing events or inventory actions', () => {
@@ -84,5 +84,53 @@ describe('player state rules', () => {
     internals.eventActive = true;
 
     expect(handler.handleVote(socket as never, player, 0)).toBe(false);
+  });
+
+  it('shows poisoned food name only to demon recipients in game payloads', () => {
+    const game = new Game(0);
+    const demon = new Player('Demon', game);
+    const human = new Player('Human', game);
+    game.players.push(demon, human);
+    game.gamePlayers = game.players;
+    game.demonName = demon.name;
+
+    const poisonedFood = new Food();
+    poisonedFood.poisoned = true;
+    human.addItem(poisonedFood);
+
+    const demonPayload = JSON.parse(game.buildGamePayload(demon.name) ?? '{}');
+    const humanPayload = JSON.parse(game.buildGamePayload(human.name) ?? '{}');
+
+    const demonSeenName = demonPayload.players
+      .find((entry: { name: string }) => entry.name === human.name)
+      ?.inventory?.[0]?.name;
+    const humanSeenName = humanPayload.players
+      .find((entry: { name: string }) => entry.name === human.name)
+      ?.inventory?.[0]?.name;
+
+    expect(demonSeenName).toBe('Poisoned food');
+    expect(humanSeenName).toBe('Food');
+  });
+
+  it('allows demons to drop and pick up poisoned food using the displayed item name', () => {
+    const game = new Game(0);
+    const demon = new Player('Demon', game);
+    game.players.push(demon);
+    game.gamePlayers = game.players;
+    game.demonName = demon.name;
+    demon.isDemon = true;
+
+    const poisonedFood = new Food();
+    poisonedFood.poisoned = true;
+    demon.addItem(poisonedFood);
+
+    expect(game.moveToFloor(demon, 'Poisoned food')).toBe(true);
+    expect(demon.inventory).toHaveLength(0);
+    expect(game.floorItems[0]).toBe(poisonedFood);
+
+    expect(game.moveToInventory(demon, 'Poisoned food')).toBe(true);
+    expect(game.floorItems).toHaveLength(0);
+    expect(demon.inventory).toHaveLength(1);
+    expect((demon.inventory[0] as Food).poisoned).toBe(true);
   });
 });

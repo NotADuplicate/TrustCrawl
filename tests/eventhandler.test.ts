@@ -4,6 +4,7 @@ import { Game } from '../server/game';
 import { Boss } from '../server/models/Events/boss';
 import { TooSlow } from '../server/models/Events/tooSlow';
 import { Rubble } from '../server/models/Events';
+import { Event } from '../server/models/event';
 import { beforeEach, afterEach } from 'vitest';
 
 type MockSocket = {
@@ -159,5 +160,149 @@ describe('EventHandler', () => {
     handler.handleEventEndContinue(player);
 
     expect(onEventFinished).toHaveBeenCalledOnce();
+  });
+
+  it('resolves group votes by majority and only uses randomness to break ties', () => {
+    const game = new Game(0);
+    const first = game.addPlayer(createSocket() as never, 'Alice');
+    const second = game.addPlayer(createSocket() as never, 'Blake');
+    const third = game.addPlayer(createSocket() as never, 'Casey');
+    game.gamePlayers = game.players;
+
+    class TestGroupEvent extends Event {
+      constructor() {
+        super(
+          'Vote Test',
+          'Vote on an option.',
+          [
+            { description: 'Option 1' },
+            { description: 'Option 2' },
+          ],
+          'group',
+          game.players,
+        );
+      }
+
+      override optionSelected(optionNumber: number) {
+        return { text: `Resolved ${optionNumber}`, color: 'info' as const };
+      }
+    }
+
+    const handler = new EventHandler(game);
+    const internals = handler as unknown as {
+      currentEvent: Event;
+      votes: Map<string, number>;
+    };
+    internals.currentEvent = new TestGroupEvent();
+    internals.votes.set(first.name, 1);
+    internals.votes.set(second.name, 1);
+    internals.votes.set(third.name, 0);
+
+    const majorityResult = handler.groupEventResolve();
+    expect(majorityResult.selectedOption).toBe(1);
+    expect([first.name, second.name]).toContain(majorityResult.selectedPlayer);
+    expect(majorityResult.result.text).toBe('Resolved 1');
+
+    internals.votes.clear();
+    internals.votes.set(first.name, 0);
+    internals.votes.set(second.name, 1);
+
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.9);
+    const tieResult = handler.groupEventResolve();
+    expect(tieResult.selectedOption).toBe(1);
+    expect(tieResult.selectedPlayer).toBe(second.name);
+    expect(tieResult.result.text).toBe('Resolved 1');
+  });
+
+  it('does not include selectedPlayer in group reveal payloads', () => {
+    const game = new Game(0);
+    const firstSocket = createSocket();
+    const secondSocket = createSocket();
+    const first = game.addPlayer(firstSocket as never, 'Alice');
+    const second = game.addPlayer(secondSocket as never, 'Blake');
+    game.gamePlayers = game.players;
+
+    class GroupPayloadEvent extends Event {
+      constructor() {
+        super(
+          'Group Payload',
+          'Payload test.',
+          [{ description: 'A' }, { description: 'B' }],
+          'group',
+          game.players,
+        );
+      }
+      override optionSelected(optionNumber: number) {
+        return { text: `Option ${optionNumber}`, color: 'info' as const };
+      }
+    }
+
+    const handler = new EventHandler(game);
+    const internals = handler as unknown as {
+      currentEvent: Event;
+      eventActive: boolean;
+    };
+    internals.currentEvent = new GroupPayloadEvent();
+    internals.eventActive = true;
+
+    handler.handleVote(firstSocket as never, first, 0);
+    handler.handleVote(secondSocket as never, second, 0);
+
+    const payload = JSON.parse(
+      String(firstSocket.send.mock.calls.findLast(([entry]) => String(entry).includes('"type":"event"') && String(entry).includes('"status":"revealed"'))?.[0] ?? '{}'),
+    );
+    expect(payload.type).toBe('event');
+    expect(payload.status).toBe('revealed');
+    expect(payload.selectedPlayer).toBeUndefined();
+  });
+
+  it('updates selected option when a confused player is forced to a different option', () => {
+    const game = new Game(0);
+    const confusedSocket = createSocket();
+    const otherSocket = createSocket();
+    const confusedPlayer = game.addPlayer(confusedSocket as never, 'Confused');
+    const otherPlayer = game.addPlayer(otherSocket as never, 'Other');
+    confusedPlayer.confused = true;
+    game.gamePlayers = game.players;
+
+    class ConfusionEvent extends Event {
+      constructor() {
+        super(
+          'Confusion Test',
+          'Confusion test.',
+          [
+            { description: 'Option 1', selectedText: 'Picked 1' },
+            { description: 'Option 2', selectedText: 'Picked 2' },
+          ],
+          'individual',
+          game.players,
+        );
+      }
+      override optionSelected(optionNumber: number) {
+        return { text: `Resolved ${optionNumber}`, color: 'info' as const };
+      }
+      override eventEnded() {
+        return { text: 'Ended', color: 'info' as const };
+      }
+    }
+
+    const handler = new EventHandler(game);
+    const internals = handler as unknown as {
+      currentEvent: Event;
+      eventActive: boolean;
+    };
+    internals.currentEvent = new ConfusionEvent();
+    internals.eventActive = true;
+
+    handler.handleVote(confusedSocket as never, confusedPlayer, 0);
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.9);
+    handler.handleVote(otherSocket as never, otherPlayer, 0);
+
+    const confusedReveal = JSON.parse(
+      String(confusedSocket.send.mock.calls.findLast(([entry]) => String(entry).includes('"type":"event"') && String(entry).includes('"status":"revealed"'))?.[0] ?? '{}'),
+    );
+    expect(confusedReveal.type).toBe('event');
+    expect(confusedReveal.status).toBe('revealed');
+    expect(confusedReveal.selectedOption).toBe(1);
   });
 });

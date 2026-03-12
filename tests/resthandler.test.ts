@@ -149,7 +149,7 @@ describe('RestHandler', () => {
     expect(payload.type).toBe('rest');
     expect(payload.skills[0]?.options).toEqual(['left', 'right']);
     expect(payload.skills[0]?.optionTooltips?.left).toBe('Reveal the left path before the group enters.');
-    expect(payload.skills[1]?.optionTooltips?.key).toBe('Spend 1 Tool to craft a Key.');
+    expect(payload.skills[1]?.optionTooltips?.key).toBe('Used to open chests.');
   });
 
   it('waits for all living players to camp before marking camp ready', () => {
@@ -243,5 +243,44 @@ describe('RestHandler', () => {
     expect(firstResult.title).toBe('Accusation Result');
     expect(firstResult.description).toBe('Dana was killed.');
     expect(secondResult.description).toBe('Dana was killed.');
+  });
+
+  it('resolves continue direction by majority vote', () => {
+    const game = new Game(0);
+    const first = game.addPlayer(createSocket() as never, 'Charlie');
+    const second = game.addPlayer(createSocket() as never, 'Dana');
+    const third = game.addPlayer(createSocket() as never, 'Ember');
+    game.gamePlayers = game.players;
+
+    const onAllContinued = vi.fn();
+    const handler = new RestHandler(game, onAllContinued);
+    handler.restActive = true;
+
+    handler.handleContinueVote(first, 'left');
+    handler.handleContinueVote(second, 'left');
+    handler.handleContinueVote(third, 'right');
+
+    expect(onAllContinued).toHaveBeenCalledOnce();
+    expect(onAllContinued.mock.calls[0]?.[0]).toBe('left');
+    expect([first.name, second.name]).toContain(onAllContinued.mock.calls[0]?.[1]);
+  });
+
+  it('breaks tied continue votes randomly between tied directions', () => {
+    const game = new Game(0);
+    const first = game.addPlayer(createSocket() as never, 'Charlie');
+    const second = game.addPlayer(createSocket() as never, 'Dana');
+    game.gamePlayers = game.players;
+
+    const onAllContinued = vi.fn();
+    const handler = new RestHandler(game, onAllContinued);
+    handler.restActive = true;
+
+    handler.handleContinueVote(first, 'left');
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.9).mockReturnValueOnce(0);
+    handler.handleContinueVote(second, 'right');
+
+    expect(onAllContinued).toHaveBeenCalledOnce();
+    expect(onAllContinued.mock.calls[0]?.[0]).toBe('right');
+    expect(onAllContinued.mock.calls[0]?.[1]).toBe(second.name);
   });
 });
