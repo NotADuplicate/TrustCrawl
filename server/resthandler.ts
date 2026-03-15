@@ -2,7 +2,7 @@ import { type WebSocket } from 'ws';
 import { Game } from './game';
 import { Skill } from './models/skill';
 import { Player } from './models/player';
-import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare, Endure } from './models/Skills';
+import { Haul, Mend, Scout, Forage, Hunt, Cook, Scavenge, Craft, Prepare, Endure, Train } from './models/Skills';
 import { Chest } from './models/Items/chest';
 import { Food } from './models/Items/Supplies/food';
 import { Tool } from './models/Items/Supplies/tool';
@@ -16,7 +16,7 @@ export class RestHandler {
         new Scavenge(),
         new Scout(),
         new Forage(),
-        new Haul(),
+        //new Haul(),
         new Mend(),
         new Hunt(),
         new Cook(),
@@ -25,6 +25,7 @@ export class RestHandler {
         new Endure(),
         new Search(),
         new Investigate(),
+        new Train()
     ];
 
     private readonly skillPoolDemon: Skill[] = [
@@ -206,7 +207,7 @@ export class RestHandler {
 
         const skill = skills[optionIndex];
         let target: Player | undefined;
-        if (skill.targeted) {
+        if (skill.getInfo(player).targeted) {
             if (!targetName) {
                 return;
             }
@@ -214,8 +215,8 @@ export class RestHandler {
             if (!target || target.name === player.name) {
                 return;
             }
-        } else if (skill.options.length > 0) {
-            if (!optionChoice || !skill.options.includes(optionChoice)) {
+        } else if (skill.getInfo(player).options.length > 0) {
+            if (!optionChoice || !skill.getInfo(player).options.includes(optionChoice)) {
                 return;
             }
         }
@@ -319,11 +320,11 @@ export class RestHandler {
         this.game.broadcastGame();
         this.startRestTimer();
 
-        try {
+       // try {
             this.onRestStarted?.();
-        } catch (error) {
-            console.error('Failed to prepare rest previews.', error);
-        }
+        // } catch (error) {
+        //     console.error('Failed to prepare rest previews.', error);
+        // }
     }
 
     sendRestTo(socket: WebSocket): void {
@@ -356,12 +357,12 @@ export class RestHandler {
             type: 'rest' as const,
             title: 'Resting',
             skills: skills.map((skill) => ({
-                name: skill.name,
-                description: skill.description,
-                targeted: skill.targeted,
-                options: skill.options,
-                optionTooltips: skill.optionTooltips,
-                demon: this.skillPoolDemon.some((demonSkill) => demonSkill.name === skill.name),
+                name: skill.getInfo(player).name,
+                description: skill.getInfo(player).description,
+                targeted: skill.getInfo(player).targeted,
+                options: skill.getInfo(player).options,
+                optionTooltips: skill.getInfo(player).optionTooltips,
+                demon: this.skillPoolDemon.some((demonSkill) => demonSkill.getInfo(player).name === skill.getInfo(player).name),
             })),
             selectedSkills: this.selectedSkills.get(player.name) ?? [],
             skillText: this.skillTexts.get(player.name) ?? null,
@@ -369,6 +370,7 @@ export class RestHandler {
             campReady: canReceivePrompts && this.isCampReady(),
             haveEaten: this.eatenStatus.get(player.name) ?? false,
             hauling: player.hauling,
+            carryingCapacity: this.getCarryCapacity(player),
             scouting: player.scouting,
             totalSeconds: Math.ceil(this.restTimerDurationMs / 1000),
             secondsLeft: this.getRestSecondsLeft(),
@@ -388,7 +390,7 @@ export class RestHandler {
             picks[2] = this.skillPoolDemon[demonPickIndex];
         }
         if (player?.preppedSkill) {
-            if (!picks.some((s) => s.name === player.preppedSkill!.name)) {
+            if (!picks.some((s) => s.getInfo(player).name === player.preppedSkill!.getInfo(player).name)) {
                 picks[0] = player.preppedSkill;
             }
             player.preppedSkill = null;
@@ -407,7 +409,7 @@ export class RestHandler {
         const selected: Skill[] = [];
         while (selected.length < count && pool.length > 0) {
             const index = Math.floor(Math.random() * pool.length);
-            if(player?.lastSkills.some(s => s.name === pool[index].name)) {
+            if(player?.lastSkills.some(s => s.getInfo(player).name === pool[index].getInfo(player).name)) {
                 pool.splice(index, 1);
                 continue;
             }
@@ -537,7 +539,7 @@ export class RestHandler {
     }
 
     private getCarryCapacity(player: Player): number {
-        return player.hauling ? 12 : 6;
+        return player.hauling ? player.carryingCapacity * 2 : player.carryingCapacity;
     }
 
     private getRestSecondsLeft(): number {

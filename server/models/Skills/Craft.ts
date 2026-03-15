@@ -3,17 +3,17 @@ import { Player } from '../player';
 import { Key } from '../Items/Supplies/key';
 import { Shiv } from '../Items/Supplies/shiv';
 export class Craft extends Skill {
-    constructor() {
-        super(
-            'Craft',
-            'Turn a tool into either a key or a shiv.',
-            false,
-            ['key', 'shiv'],
-            {
+    override getInfo(player: Player) {
+        return {
+            name: 'Craft',
+            description: 'Turn a tool into either a key or a shiv.',
+            targeted: false,
+            options: ['key', 'shiv'],
+            optionTooltips: {
                 key: 'Used to open chests.',
                 shiv: 'Deal 1 damage to any target.',
             }
-        );
+        };
     }
 
     override Use(player: Player, target?: Player, option?: string): string {

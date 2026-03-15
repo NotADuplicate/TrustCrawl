@@ -54,9 +54,9 @@ export class Carcass extends Event {
     override getOptionInvestigationText(optionNumber: number, player: Player): string | undefined {
         const knownDanger = this.danger + this.seededRandom(player)/3 - 0.15; //player's guess is within 15% of the actual danger
         if(knownDanger+0.15 < optionNumber * 0.15) {
-            return `This is definitely safe.`;
-        } else if(knownDanger-0.15 > optionNumber * 0.15) {
             return `This is definitely dangerous.`;
+        } else if(knownDanger-0.15 > optionNumber * 0.15) {
+            return `This is definitely safe.`;
         } else {
             return `This is uncertain.`;
         }

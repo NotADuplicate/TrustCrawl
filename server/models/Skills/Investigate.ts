@@ -1,12 +1,14 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-import { Item } from '../item';
 export class Investigate extends Skill {
-    constructor() {
-        super(
-            'Investigate',
-            'In the next event, get a hint about the outcome.'
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Investigate',
+            description: 'In the next event, get a hint about the outcome.',
+            targeted: false,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player): string {

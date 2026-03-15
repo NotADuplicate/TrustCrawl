@@ -1,12 +1,14 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-import { Item } from '../item';
 export class Haul extends Skill {
-    constructor() {
-        super(
-            'Haul',
-            'Double your carrying capacity until the next room.'
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Haul',
+            description: 'Double your carrying capacity until the next room.',
+            targeted: false,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player): string {

@@ -91,6 +91,7 @@ wss.on('connection', (socket) => {
                 }
 
                 console.log('Game started.');
+                console.log("Players:", game.players.map(p => p.name).join(', '));
                 eventHandler.resetForNewGame();
                 restHandler.resetForNewGame();
                 restHandler.startRest();

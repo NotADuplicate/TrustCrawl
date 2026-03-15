@@ -5,6 +5,8 @@ import { Food } from '../server/models/Items/Supplies/food';
 import { Tool } from '../server/models/Items/Supplies/tool';
 import { Confuse } from '../server/models/Skills/DemonSkills';
 import { Craft } from '../server/models/Skills/Craft';
+import { Forage } from '../server/models/Skills/Forage';
+import { Prepare } from '../server/models/Skills/Prepare';
 import { Scout } from '../server/models/Skills/Scout';
 
 type MockSocket = {
@@ -150,6 +152,73 @@ describe('RestHandler', () => {
     expect(payload.skills[0]?.options).toEqual(['left', 'right']);
     expect(payload.skills[0]?.optionTooltips?.left).toBe('Reveal the left path before the group enters.');
     expect(payload.skills[1]?.optionTooltips?.key).toBe('Used to open chests.');
+  });
+
+  it('keeps prepare selections separate per player and grants them next rest', () => {
+    const game = new Game(0);
+    const firstSocket = createSocket();
+    const secondSocket = createSocket();
+    const firstPlayer = game.addPlayer(firstSocket as never, 'Charlie');
+    const secondPlayer = game.addPlayer(secondSocket as never, 'Dana');
+    firstPlayer.health = 1;
+    secondPlayer.health = 1;
+    game.gamePlayers = game.players;
+
+    const handler = new RestHandler(game);
+    const prepare = new Prepare();
+    const firstPreparedSkill = Object.assign(new Scout(), { name: 'Scout' });
+    const firstOtherSkill = Object.assign(new Forage(), { name: 'Forage' });
+    const secondPreparedSkill = Object.assign(new Craft(), { name: 'Craft' });
+    const secondOtherSkill = Object.assign(new Scout(), { name: 'Scout' });
+
+    vi.spyOn(prepare, 'pickSkills').mockImplementation((_count, player) => {
+      if (player.name === firstPlayer.name) {
+        return [firstPreparedSkill, firstOtherSkill];
+      }
+      return [secondPreparedSkill, secondOtherSkill];
+    });
+
+    const internals = handler as unknown as {
+      playerSkills: Map<string, Array<{ name: string }>>;
+    };
+
+    handler.restActive = true;
+    internals.playerSkills.set(firstPlayer.name, [prepare]);
+    internals.playerSkills.set(secondPlayer.name, [prepare]);
+
+    prepare.getInfo(firstPlayer);
+    prepare.getInfo(secondPlayer);
+
+    handler.handleSkillPick(firstPlayer, 0, undefined, 'Scout');
+    handler.handleSkillPick(secondPlayer, 0, undefined, 'Craft');
+
+    expect(firstPlayer.preppedSkill?.name).toBe('Scout');
+    expect(secondPlayer.preppedSkill?.name).toBe('Craft');
+
+    handler.endRest();
+
+    vi.spyOn(handler, 'pickSkills').mockImplementation((count, player) => {
+      if (player?.name === firstPlayer.name) {
+        return [new Forage(), new Craft()].slice(0, count);
+      }
+      if (player?.name === secondPlayer.name) {
+        return [new Forage(), new Scout()].slice(0, count);
+      }
+      return [];
+    });
+
+    handler.startRest();
+
+    firstSocket.send.mockClear();
+    secondSocket.send.mockClear();
+    handler.sendRestTo(firstSocket as never);
+    handler.sendRestTo(secondSocket as never);
+
+    const firstPayload = JSON.parse(String(firstSocket.send.mock.calls.at(-1)?.[0] ?? '{}'));
+    const secondPayload = JSON.parse(String(secondSocket.send.mock.calls.at(-1)?.[0] ?? '{}'));
+
+    expect(firstPayload.skills[0]?.name).toBe('Scout');
+    expect(secondPayload.skills[0]?.name).toBe('Craft');
   });
 
   it('waits for all living players to camp before marking camp ready', () => {

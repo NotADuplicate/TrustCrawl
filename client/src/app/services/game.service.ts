@@ -10,6 +10,7 @@ export type PlayerState = {
   name: string;
   health: number;
   stamina: number;
+  carryingCapacity?: number;
   inventory: GameItem[];
 };
 
@@ -61,6 +62,7 @@ type ServerMessage =
       skillText?: string | null;
       haveEaten?: boolean;
       hauling?: boolean;
+      carryingCapacity?: number;
       scouting?: 'left' | 'right' | 'neither';
     };
 
@@ -256,7 +258,7 @@ export class GameService {
           this.restSelectedSkill.set(data.selectedSkill ?? null);
           this.restSkillText.set(data.skillText ?? null);
           this.restHaveEaten.set(Boolean(data.haveEaten));
-          this.carryingCapacity.set(data.hauling ? 12 : 6);
+          this.carryingCapacity.set(data.carryingCapacity ?? (data.hauling ? 12 : 6));
           this.scouting.set(data.scouting ?? 'neither');
         }
       } catch {

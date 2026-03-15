@@ -101,6 +101,10 @@ export class Event {
         return Math.random() < this.trueProbability[index];
     }
 
+    optionClicked(optionNumber: number, player: Player, game?: Game): void {
+        return;
+    }
+
     stab(target: number): string {
         return `You stabbed the ${this.title}!`;
     }

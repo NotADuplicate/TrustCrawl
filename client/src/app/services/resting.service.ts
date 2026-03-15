@@ -249,7 +249,9 @@ export class RestingService extends Service {
     this.state.campReady = Boolean(data['campReady']);
     this.state.haveEaten = Boolean(data['haveEaten']);
     this.state.continued = false;
-    this.state.carryingCapacity = Number(data['hauling'] ? 12 : 6);
+    this.state.carryingCapacity = typeof data['carryingCapacity'] === 'number'
+      ? data['carryingCapacity']
+      : Number(data['hauling'] ? 12 : 6);
     this.state.scouting = (data['scouting'] as 'left' | 'right' | 'neither') ?? 'neither';
     this.state.directionVote = null;
     this.state.totalSeconds = typeof data['totalSeconds'] === 'number' ? data['totalSeconds'] : this.state.totalSeconds;

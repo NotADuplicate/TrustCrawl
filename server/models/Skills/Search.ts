@@ -1,12 +1,14 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
 export class Search extends Skill {
-    constructor() {
-        super(
-            'Search',
-            'See what is in a player\'s inventory.',
-            true
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Search',
+            description: 'See the items in a player’s inventory.',
+            targeted: true,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player, target?: Player): string {

@@ -209,6 +209,7 @@ export class Game {
                 health: player.health,
                 wellFed: player.wellFed,
                 stamina: player.stamina,
+                carryingCapacity: player.carryingCapacity,
                 inventory: player.inventory.map((item) => ({
                     name: this.displayItemNameForViewer(item, viewingAsDemon),
                     description: item.description,
@@ -252,7 +253,7 @@ export class Game {
     broadcastGame(): void {
         for (const [client, info] of this.clients.entries()) {
             if (client.readyState === client.OPEN) {
-                console.log("Here")
+                console.log("Broadcasting game state to");
                 const payload = this.buildGamePayload(info.name);
                 if (payload) {
                     console.log(`Broadcasting game state to ${info.name}`);

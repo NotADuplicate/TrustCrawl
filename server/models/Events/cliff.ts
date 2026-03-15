@@ -31,7 +31,7 @@ export class Cliff extends Event {
 
     override isOptionAvailable(optionNumber: number, player: Player): boolean {
         if (optionNumber === 0) {
-            return true;
+            return this.belayer === null || this.belayer.name !== player.name;
         } else if(player.wounded)  {
             return false;
         }
@@ -42,16 +42,18 @@ export class Cliff extends Event {
         if(optionNumber === 0) {
             return { text: 'You are slowly lowered down the cliff face...', color: 'info' };
         } else if (optionNumber === 1) {
-            this.belayer = player;
-            const message = `${player.name} is the belayer. Hope they try their best...`;
-            this.update(message, 'info');
             return { text: 'You are the belayer. You try your best...', color: 'info' };
         } else {
-            this.belayer = player;
             this.failure = true;
+            return { text: 'You intentionally fail to belay the others. They won\'t know you did it on purpose.', color: 'info' };
+        }
+    }
+
+    override optionClicked(optionNumber: number, player: Player, game?: Game): void {
+        if(optionNumber !== 0) {
+            this.belayer = player;
             const message = `${player.name} is the belayer. Hope they try their best...`;
             this.update(message, 'info');
-            return { text: 'You intentionally fail to belay the others. They won\'t know you did it on purpose.', color: 'info' };
         }
     }
 
@@ -81,6 +83,9 @@ export class Cliff extends Event {
     }
 
     override eventLikelihood(game: Game): number {
+        if(game.players.filter(p => p.health > 0).length < 2) {
+            return 0;
+        }
         return 2;
     }
 }

@@ -1,15 +1,27 @@
 import { Player } from './player';
+export type SkillInfo = {
+    name: string;
+    description: string;
+    targeted: boolean;
+    options: string[];
+    optionTooltips: Record<string, string>;
+}
 export class Skill {
-    constructor(
-        public name: string,
-        public description: string,
-        public targeted = false,
-        public options: string[] = [],
-        public optionTooltips: Record<string, string> = {}
-    ) { }
+    constructor() {
+    }
 
     Use(player: Player, target?: Player, option?: string): string {
         // Default does nothing, override for custom behavior
         return '';
+    }
+
+    getInfo(player: Player): SkillInfo {
+        return {
+            name: '',
+            description: '',
+            targeted: false,
+            options: [],
+            optionTooltips: {}
+        };
     }
 }

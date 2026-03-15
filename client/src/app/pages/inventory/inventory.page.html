@@ -15,7 +15,7 @@
       >
         <div class="panel-header">
           <h2>Your inventory</h2>
-          <span class="total-weight">Total weight: {{ inventory.myInventoryWeight }} / 6</span>
+          <span class="total-weight">Total weight: {{ inventory.myInventoryWeight }} / {{ inventory.myCarryingCapacity }}</span>
         </div>
         <div class="item-grid" *ngIf="inventory.myInventoryStacked.length > 0; else emptyInventory">
           <ng-container *ngFor="let item of inventory.myInventoryStacked">

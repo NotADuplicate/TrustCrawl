@@ -46,7 +46,7 @@ export class EventHandler {
         GiantBoar,
         Cleric,
         TrustAltar,
-        SplitUp,
+        //SplitUp,
     ];
 
     constructor(
@@ -57,6 +57,7 @@ export class EventHandler {
     }
 
     resetForNewGame(): void {
+        this.lastThreeEvents = [];
         this.votes.clear();
         this.continues.clear();
         this.endContinues.clear();
@@ -139,6 +140,7 @@ export class EventHandler {
                 return false;
             }
 
+            this.currentEvent.optionClicked(optionIndex, player, this.game);
             this.currentEvent.optionSelections.push({ optionNumber: optionIndex, player, quantity });
             const result = {
                 text: this.currentEvent.options[optionIndex]?.selectedText ?? '',
@@ -151,7 +153,10 @@ export class EventHandler {
                     const optionIndex = selection.optionNumber;
                     const player = selection.player;
                     if(player.confused) {
-                        const availableOptions = this.currentEvent.options.map((_, index) => this.currentEvent.isOptionAvailable(index, player) ? index : null).filter(index => index !== null) as number[];
+                        const availableOptions = this.currentEvent.options.map((_, index) => this.currentEvent.isOptionAvailable(index, player) ? index : null).filter(index => index !== null && index != optionIndex) as number[];
+                        if (availableOptions.length === 0) {
+                            availableOptions.push(optionIndex);
+                        }
                         const randomIndex = availableOptions[Math.floor(Math.random() * availableOptions.length)];
                         this.votes.set(player.name, randomIndex);
                         this.currentEvent.optionSelected(randomIndex, player, selection.quantity, this.game);
@@ -199,6 +204,7 @@ export class EventHandler {
         console.log(`Starting event in direction`);
         const nextEvent = direction === 'left' ? this.previewLeft : this.previewRight;
         if (!nextEvent) {
+            console.log('No event to start for direction:', direction);
             return;
         }
 
@@ -219,53 +225,61 @@ export class EventHandler {
     }
 
     prepareRestPreviews(): void {
+        console.log('Preparing rest previews');
         if (this.game.players.filter(p => p.health>0).length === 0) {
+            console.log('No alive players, skipping preview preparation.');
             return;
         }
 
         this.previewLeft = this.pickEvent();
+        console.log('Selected left preview event:', this.previewLeft.title);
         this.previewLeft.game = this.game;
         this.previewRight = this.pickEvent();
+        console.log('Selected right preview event:', this.previewRight.title);
         this.previewRight.game = this.game;
     }
 
     pickEvent(): Event {
+        console.log('Picking event. Current level:', this.game.level);
         if(this.game.level >= 12 && this.game.level % 2 === 0) {
+            console.log('Boss event triggered.');
             if (!this.bossEvent) {
                 this.bossEvent = new Boss(this.game.players);
                 this.bossEvent.game = this.game;
             }
             return this.bossEvent!;
         }
+        console.log('Selecting from event pool with', this.EventPool.length, 'events.');
         const candidates = this.EventPool.flatMap((EventType) => {
-            try {
                 const instance = new EventType(this.game.players);
                 if(instance.title === this.currentEvent.title || this.lastThreeEvents.some(e => e.title === instance.title)) {
                     return [{ instance, weight: 0 }];
                 }
                 instance.game = this.game;
-                console.log(instance.title, 'likelihood:', instance.eventLikelihood(this.game));
+                //console.log(instance.title, 'likelihood:', instance.eventLikelihood(this.game));
                 const weight = Math.max(0, instance.eventLikelihood(this.game));
+                console.log('a', instance.title, 'weight:', weight);
                 return [{ instance, weight }];
-            } catch (error) {
-                console.error(`Failed to create preview event ${EventType.name}.`, error);
-                return [];
-            }
         });
+        console.log('Candidate events and weights:', candidates.map(c => ({ title: c.instance.title, weight: c.weight })));
 
         const totalWeight = candidates.reduce((sum, entry) => sum + entry.weight, 0);
         if (totalWeight <= 0) {
+            console.log('All candidate events have zero weight, defaulting to Rubble.');
             return candidates[0]?.instance ?? new Rubble(this.game.players);
         }
 
         let roll = Math.random() * totalWeight;
+        console.log('Total weight:', totalWeight, 'Roll:', roll);
         for (const entry of candidates) {
             roll -= entry.weight;
             if (roll <= 0) {
+                console.log('Selected event:', entry.instance.title);
                 return entry.instance;
             }
         }
 
+        console.log("Error in event selection, defaulting to first candidate.");
         return candidates[0].instance;
     }
 

@@ -133,4 +133,16 @@ describe('player state rules', () => {
     expect(demon.inventory).toHaveLength(1);
     expect((demon.inventory[0] as Food).poisoned).toBe(true);
   });
+
+  it('includes player carrying capacity in the game payload', () => {
+    const game = new Game(0);
+    const player = new Player('Alice', game);
+    player.carryingCapacity = 9;
+    game.players.push(player);
+    game.gamePlayers = game.players;
+
+    const payload = JSON.parse(game.buildGamePayload(player.name) ?? '{}');
+    expect(payload.type).toBe('game');
+    expect(payload.players[0]?.carryingCapacity).toBe(9);
+  });
 });

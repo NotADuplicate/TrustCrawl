@@ -8,3 +8,4 @@ export * from './Forage';
 export * from './Craft';
 export * from './Prepare';
 export * from './Endure';
+export * from './Train';

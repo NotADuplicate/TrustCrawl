@@ -74,7 +74,6 @@ export class Merchant extends Event {
 
     pickItemToSell(): Sale {
         if(Math.random() < 0.5) {
-            console.log('Merchant is selling supplies.');
             const supplies = [Food, Key, Tool, Shiv];
             const supplyType = supplies[Math.floor(Math.random() * supplies.length)];
             const item = new supplyType();
@@ -82,7 +81,6 @@ export class Merchant extends Event {
             const quantity = supplyType === Food ? Math.floor(Math.random() * 4) + 2 : Math.floor(Math.random() * 3)+1;
             return { item, quantity, price: Math.round(price * quantity) };
         }
-        console.log('Merchant is selling equipment.');
         const items = [Balloon, Tea, Satchel, Club, HeavyClub, Armor, Shovel, Firewood];
         const sellable = items.filter((item) => item != null);
         const index = Math.floor(Math.random() * sellable.length);

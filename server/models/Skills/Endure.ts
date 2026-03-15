@@ -1,12 +1,14 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
-import { Item } from '../item';
 export class Endure extends Skill {
-    constructor() {
-        super(
-            'Endure',
-            'Until your next rest, any time you would lose health, lose stamina first.'
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Endure',
+            description: 'Until your next rest, any time you would lose health, lose stamina first.',
+            targeted: false,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player): string {

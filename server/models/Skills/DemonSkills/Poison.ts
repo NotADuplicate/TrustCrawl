@@ -2,11 +2,14 @@ import { Skill } from '../../skill';
 import { Player } from '../../player';
 import { Food } from '../../Items/Supplies/food';
 export class Poison extends Skill {
-    constructor() {
-        super(
-            'Poison',
-            `Poison 1 food item in your inventory.`
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Poison',
+            description: `Poison 1 food item in your inventory.`,
+            targeted: false,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player): string {

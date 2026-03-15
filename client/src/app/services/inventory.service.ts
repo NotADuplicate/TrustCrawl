@@ -20,6 +20,7 @@ export type PlayerState = {
   health: number;
   stamina: number;
   wellFed?: boolean;
+  carryingCapacity?: number;
   inventory: GameItem[];
 };
 
@@ -151,6 +152,10 @@ export class InventoryService {
 
   get myWellFed(): boolean {
     return Boolean(this.currentPlayer?.wellFed);
+  }
+
+  get myCarryingCapacity(): number {
+    return this.currentPlayer?.carryingCapacity ?? 6;
   }
 
   updateName(name: string): void {

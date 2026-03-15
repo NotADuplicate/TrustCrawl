@@ -1,12 +1,14 @@
 import { Skill } from '../../skill';
 import { Player } from '../../player';
 export class Confuse extends Skill {
-    constructor() {
-        super(
-            'Confuse',
-            'Target player will pick a random option next event.',
-            true
-        );
+    override getInfo(player: Player) {
+        return {
+            name: 'Confuse',
+            description: 'Target player will pick a random option next event.',
+            targeted: true,
+            options: [],
+            optionTooltips: {}
+        };
     }
 
     override Use(player: Player, target?: Player): string {
