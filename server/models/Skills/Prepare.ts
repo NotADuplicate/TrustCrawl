@@ -1,6 +1,7 @@
 import { Skill } from '../skill';
 import { Player } from '../player';
 import { Cook, Craft, Endure, Forage, Haul, Hunt, Mend, Scavenge, Scout, Train } from './';
+import { Investigate } from './Investigate';
 
 export class Prepare extends Skill {
     private readonly skillPool: Skill[] = [
@@ -11,28 +12,32 @@ export class Prepare extends Skill {
         new Endure(),
         new Cook(),
         new Craft(),
-        new Haul(),
         new Scout(),
-        new Train()
+        new Train(),
+        new Investigate()
     ];
-    private readonly selectedSkillsByPlayer = new WeakMap<Player, Skill[]>();
+    private selectedSkillsByPlayer = new WeakMap<Player, Skill[]>();
 
     override getInfo(player: Player) {
         console.log("Getting info for prepare")
-        const selectedSkills = this.pickSkills(player.skillModifier + 4, player);
-        this.selectedSkillsByPlayer.set(player, selectedSkills);
+        if(!this.selectedSkillsByPlayer.has(player)) {
+            console.log(this.selectedSkillsByPlayer);
+            const selectedSkills = this.pickSkills(player.skillModifier + 4, player);
+            this.selectedSkillsByPlayer.set(player, selectedSkills);
+        }
         return {
             name: 'Prepare',
             description: `Pick 1 of ${player.skillModifier + 4} skills to have ready for the next floor.`,
             targeted: false,
-            options: selectedSkills.map(skill => skill.getInfo(player).name),
+            options: this.selectedSkillsByPlayer.get(player)?.map(s => s.getInfo(player).name) ?? [],
             optionTooltips: Object.fromEntries(
-                selectedSkills.map((skill) => [skill.getInfo(player).name, skill.getInfo(player).description]),
+                (this.selectedSkillsByPlayer.get(player) ?? []).map((skill) => [skill.getInfo(player).name, skill.getInfo(player).description]),
             )
         };
     }
 
     override Use(player: Player, target?: Player, option?: string): string {
+        console.log("Preparing:", option)
         console.log('Selected skills for player:', this.selectedSkillsByPlayer.get(player)?.map(s => s.getInfo(player).name));
         if (!option) {
             console.log('No skill option selected.');
@@ -50,6 +55,7 @@ export class Prepare extends Skill {
     }
 
     pickSkills(count: number, player: Player): Skill[] {
+        console.log(`Picking ${count} skills for player ${player.name}`);
         const pool = [...this.skillPool];
         const selected: Skill[] = [];
         while (selected.length < count && pool.length > 0) {
@@ -66,5 +72,9 @@ export class Prepare extends Skill {
         }
 
         return selected;
+    }
+
+    override reset(): void {
+        this.selectedSkillsByPlayer = new WeakMap<Player, Skill[]>();
     }
 }

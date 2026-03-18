@@ -24,7 +24,7 @@ export class Player {
     public confused = false;
     public investigating = false;
     public lastSkills: Skill[] = [];
-    public carryingCapacity = 6;
+    public carryingCapacity = 8;
     public skillModifier = 0;
 
     constructor(public name: string, game: Game) {

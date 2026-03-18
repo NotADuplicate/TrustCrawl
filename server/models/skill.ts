@@ -24,4 +24,8 @@ export class Skill {
             optionTooltips: {}
         };
     }
+
+    reset(): void {
+        // Override if the skill has any state that needs to be reset at the end of a floor
+    }
 }

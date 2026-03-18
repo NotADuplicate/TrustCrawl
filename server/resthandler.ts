@@ -16,7 +16,6 @@ export class RestHandler {
         new Scavenge(),
         new Scout(),
         new Forage(),
-        //new Haul(),
         new Mend(),
         new Hunt(),
         new Cook(),
@@ -197,11 +196,13 @@ export class RestHandler {
 
     handleSkillPick(player: Player, optionIndex: number, targetName?: string, optionChoice?: string): void {
         if (!this.restActive || player.health < 1) {
+            console.log('Skill pick ignored: Rest not active or player health too low.');
             return;
         }
 
         const skills = this.getSkillsForPlayer(player.name);
         if (!skills || optionIndex < 0 || optionIndex >= skills.length) {
+            console.log('Invalid skill index selected:', optionIndex);
             return;
         }
 
@@ -209,14 +210,17 @@ export class RestHandler {
         let target: Player | undefined;
         if (skill.getInfo(player).targeted) {
             if (!targetName) {
+                console.log('Skill pick ignored: No target specified for targeted skill.');
                 return;
             }
             target = this.game.players.find((entry) => entry.name === targetName);
             if (!target || target.name === player.name) {
+                console.log('Skill pick ignored: Invalid target specified for targeted skill.');
                 return;
             }
         } else if (skill.getInfo(player).options.length > 0) {
             if (!optionChoice || !skill.getInfo(player).options.includes(optionChoice)) {
+                console.log('Skill pick ignored: Invalid option choice for skill.');
                 return;
             }
         }
@@ -290,6 +294,11 @@ export class RestHandler {
         console.log('Starting rest phase.');
         if (this.game.players.filter(p => p.health > 0).length === 0) {
             return;
+        }
+
+        // reset skills with resets
+        for (const skill of this.skillPool) {
+            skill.reset();
         }
 
         this.restActive = true;
